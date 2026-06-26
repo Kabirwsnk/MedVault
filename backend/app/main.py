@@ -10,6 +10,8 @@ from app.routers.auth import router as auth_router
 
 from app.routers.users import router as user_router
 
+from app.routers.medical_record import router as medical_record_router
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -17,6 +19,7 @@ app = FastAPI()
 app.include_router(patient_router)
 app.include_router(auth_router)
 app.include_router(user_router)
+app.include_router(medical_record_router)
 
 
 @app.get("/")

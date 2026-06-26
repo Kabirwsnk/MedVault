@@ -10,6 +10,8 @@ from app.schemas.patient import (
     PatientResponse
 )
 
+from app.utils.roles import require_role
+
 router = APIRouter(
     prefix="/patients",
     tags=["Patients"]
@@ -51,7 +53,10 @@ def get_patient(
 )
 def create_patient(
     patient: PatientCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["registration_worker"])
+    )
 ):
     
     current_year = datetime.now().strftime("%y")

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from app.database import Base
+from sqlalchemy.orm import relationship
 
 
 class Patient(Base):
@@ -27,4 +28,9 @@ class Patient(Base):
         String,
         unique=True,
         nullable=False
+    )
+
+    records = relationship(
+        "MedicalRecord",
+        back_populates="patient"
     )

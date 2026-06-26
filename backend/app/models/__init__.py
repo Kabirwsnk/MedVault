@@ -1,0 +1,1 @@
+from .medical_record import MedicalRecord
