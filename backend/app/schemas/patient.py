@@ -24,3 +24,11 @@ class PatientProfileResponse(BaseModel):
 
     class Config:
         from_attributes = True    
+
+class PatientSearchResponse(BaseModel):
+    beneficiary_id: str
+    full_name: str
+    phone_number: str
+
+    class Config:
+        from_attributes = True

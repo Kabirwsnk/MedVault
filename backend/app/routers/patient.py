@@ -1,13 +1,15 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.dependencies import get_db
 from app.models.patient import Patient
 from app.schemas.patient import (
     PatientCreate,
-    PatientResponse
+    PatientResponse,
+    PatientSearchResponse
 )
 
 from app.utils.roles import require_role
@@ -15,14 +17,34 @@ from app.utils.roles import require_role
 router = APIRouter(
     prefix="/patients",
     tags=["Patients"]
-)
-
-
+    )
+    
 @router.get("/", response_model=list[PatientResponse])
 def get_all_patients(
     db: Session = Depends(get_db)
 ):
     patients = db.query(Patient).all()
+
+    return patients
+
+@router.get(
+    "/search",
+    response_model=list[PatientSearchResponse]
+)
+def search_patients(
+    name: str = Query(..., min_length=1),
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor", "registration_worker"])
+    )
+):
+    patients = (
+        db.query(Patient)
+        .filter(
+            Patient.full_name.ilike(f"%{name}%")
+        )
+        .all()
+    )
 
     return patients
 
