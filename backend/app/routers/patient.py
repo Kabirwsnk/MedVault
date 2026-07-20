@@ -48,6 +48,21 @@ def search_patients(
 
     return patients
 
+@router.get(
+    "/all",
+    response_model=list[PatientSearchResponse]
+)
+def list_all_patients(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor"])
+    )
+):
+
+    patients = db.query(Patient).all()
+
+    return patients
+
 @router.get("/{beneficiary_id}", response_model=PatientResponse)
 def get_patient(
     beneficiary_id: str,
