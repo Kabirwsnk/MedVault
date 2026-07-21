@@ -37,3 +37,8 @@ class MedicalRecord(Base):
         "Patient",
         back_populates="records"
     )
+    
+    prescriptions = relationship(
+    "Prescription",
+    back_populates="medical_record"
+    )    

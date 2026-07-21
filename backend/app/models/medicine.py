@@ -2,6 +2,8 @@ from sqlalchemy import Column, Integer, String
 
 from app.database import Base
 
+from sqlalchemy.orm import relationship
+
 
 class Medicine(Base):
     __tablename__ = "medicines"
@@ -30,4 +32,9 @@ class Medicine(Base):
     stock = Column(
         Integer,
         default=0
+    )
+    
+    prescriptions = relationship(
+    "Prescription",
+    back_populates="medicine"
     )
