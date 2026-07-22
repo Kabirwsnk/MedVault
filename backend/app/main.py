@@ -22,6 +22,8 @@ from app.models.prescription import Prescription
 
 from app.routers.prescription import router as prescription_router
 
+from app.routers.pharmacy import router as pharmacy_router
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -33,6 +35,7 @@ app.include_router(medical_record_router)
 app.include_router(dashboard_router)
 app.include_router(medicine_router)
 app.include_router(prescription_router)
+app.include_router(pharmacy_router)
 
 @app.get("/")
 def home():

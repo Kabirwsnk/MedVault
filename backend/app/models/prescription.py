@@ -4,6 +4,8 @@ from sqlalchemy.orm import relationship
 
 from app.database import Base
 
+from sqlalchemy import Boolean, DateTime
+from datetime import datetime
 
 class Prescription(Base):
     __tablename__ = "prescriptions"
@@ -25,6 +27,17 @@ class Prescription(Base):
     dosage = Column(String)
 
     duration = Column(String)
+
+    # NEW COLUMNS
+    dispensed = Column(
+        Boolean,
+        default=False
+    )
+
+    dispensed_at = Column(
+        DateTime,
+        nullable=True
+    )
 
     medical_record = relationship(
         "MedicalRecord",

@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from datetime import datetime
+from typing import Optional
 
 
 class PrescriptionCreate(BaseModel):
@@ -14,6 +16,9 @@ class PrescriptionResponse(BaseModel):
     quantity: int
     dosage: str
     duration: str
+    
+    dispensed: bool
+    dispensed_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
