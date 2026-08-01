@@ -1,0 +1,7 @@
+AI_PROVIDER = "openai"
+
+OPENAI_MODEL = "gpt-4.1-mini"
+
+TEMPERATURE = 0.3
+
+MAX_TOKENS = 500
