@@ -127,6 +127,8 @@ def create_patient(
     )
     .first()
 )
+    print("Incoming Aadhaar:", patient.aadhar_number)
+    print("Existing Patient:", existing_patient)
 
     if existing_patient:
         raise HTTPException(
@@ -138,7 +140,14 @@ def create_patient(
         beneficiary_id=beneficiary_id,
         full_name=patient.full_name,
         phone_number=patient.phone_number,
-        aadhar_number=patient.aadhar_number
+        aadhar_number=patient.aadhar_number,
+
+        blood_group=patient.blood_group,
+        date_of_birth=patient.date_of_birth,
+        gender=patient.gender,
+        height_cm=patient.height_cm,
+        weight_kg=patient.weight_kg,
+        emergency_contact=patient.emergency_contact
     )
 
     db.add(new_patient)

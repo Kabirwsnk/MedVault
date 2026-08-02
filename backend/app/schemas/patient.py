@@ -7,12 +7,29 @@ class PatientCreate(BaseModel):
     phone_number: str
     aadhar_number: str
 
+    blood_group: str | None = None
+    date_of_birth: str | None = None
+    gender: str | None = None
+    height_cm: int | None = None
+    weight_kg: int | None = None
+    emergency_contact: str | None = None
+
 
 class PatientResponse(BaseModel):
     id: int
     beneficiary_id: str
     full_name: str
     phone_number: str
+
+    blood_group: str | None = None
+    date_of_birth: str | None = None
+    gender: str | None = None
+    height_cm: int | None = None
+    weight_kg: int | None = None
+    emergency_contact: str | None = None
+
+    class Config:
+        from_attributes = True
     
 class PatientProfileResponse(BaseModel):
 
@@ -20,10 +37,17 @@ class PatientProfileResponse(BaseModel):
     full_name: str
     phone_number: str
 
+    blood_group: str | None = None
+    date_of_birth: str | None = None
+    gender: str | None = None
+    height_cm: int | None = None
+    weight_kg: int | None = None
+    emergency_contact: str | None = None
+
     medical_records: list[MedicalRecordSummary]
 
     class Config:
-        from_attributes = True    
+        from_attributes = True  
 
 class PatientSearchResponse(BaseModel):
     beneficiary_id: str

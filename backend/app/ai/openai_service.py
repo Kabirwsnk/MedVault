@@ -17,7 +17,10 @@ client = OpenAI(
 )
 
 
-def ask_openai(question: str):
+def ask_openai(
+    question: str,
+    context: str
+):
 
     response = client.chat.completions.create(
 
@@ -31,6 +34,10 @@ def ask_openai(question: str):
             {
                 "role": "system",
                 "content": MEDICAL_SYSTEM_PROMPT
+            },
+            {
+                "role": "system",
+                "content": context
             },
             {
                 "role": "user",

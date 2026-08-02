@@ -1,12 +1,17 @@
-from sqlalchemy import Column, Integer, String  # type: ignore
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.orm import relationship
+
 from app.database import Base
-from sqlalchemy.orm import relationship  # type: ignore
 
 
 class Patient(Base):
     __tablename__ = "patients"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
 
     beneficiary_id = Column(
         String,
@@ -28,6 +33,36 @@ class Patient(Base):
         String,
         unique=True,
         nullable=False
+    )
+
+    blood_group = Column(
+        String,
+        nullable=True
+    )
+
+    date_of_birth = Column(
+        String,
+        nullable=True
+    )
+
+    gender = Column(
+        String,
+        nullable=True
+    )
+
+    height_cm = Column(
+        Integer,
+        nullable=True
+    )
+
+    weight_kg = Column(
+        Integer,
+        nullable=True
+    )
+
+    emergency_contact = Column(
+        String,
+        nullable=True
     )
 
     records = relationship(
