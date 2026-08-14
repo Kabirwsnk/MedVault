@@ -21,3 +21,11 @@ class MedicalRecordSummary(BaseModel):
     class Config:
         from_attributes = True
     
+    
+class MedicalRecordUpdate(BaseModel):
+
+    diagnosis: str
+
+    prescription: str
+
+    notes: str | None = None    

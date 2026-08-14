@@ -56,3 +56,19 @@ class PatientSearchResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        
+class PatientUpdate(BaseModel):
+
+    phone_number: str
+
+    blood_group: str | None = None
+
+    date_of_birth: str | None = None
+
+    gender: str | None = None
+
+    height_cm: int | None = None
+
+    weight_kg: int | None = None
+
+    emergency_contact: str | None = None        

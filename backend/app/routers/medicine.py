@@ -5,7 +5,8 @@ from app.dependencies import get_db
 from app.models.medicine import Medicine
 from app.schemas.medicine import (
     MedicineCreate,
-    MedicineResponse
+    MedicineResponse,
+    MedicineUpdate
 )
 from app.utils.roles import require_role
 
@@ -74,6 +75,30 @@ def get_all_medicines(
 
     return db.query(Medicine).all()
 
+# ----------------------------------------
+# Low Stock Medicines
+# ----------------------------------------
+@router.get(
+    "/low-stock",
+    response_model=list[MedicineResponse]
+)
+def low_stock_medicines(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor", "pharmacy"])
+    )
+):
+
+    medicines = (
+        db.query(Medicine)
+        .filter(
+            Medicine.stock < 10
+        )
+        .all()
+    )
+
+    return medicines
+
 
 # ----------------------------------------
 # Get Single Medicine
@@ -105,3 +130,43 @@ def get_medicine(
         )
 
     return medicine
+
+# ----------------------------------------
+# Update Medicine
+# ----------------------------------------
+@router.put(
+    "/{medicine_id}",
+    response_model=MedicineResponse
+)
+def update_medicine(
+    medicine_id: int,
+    updated_data: MedicineUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["pharmacy"])
+    )
+):
+
+    medicine = (
+        db.query(Medicine)
+        .filter(
+            Medicine.id == medicine_id
+        )
+        .first()
+    )
+
+    if not medicine:
+        raise HTTPException(
+            status_code=404,
+            detail="Medicine not found."
+        )
+
+    medicine.manufacturer = updated_data.manufacturer
+    medicine.unit = updated_data.unit
+    medicine.stock = updated_data.stock
+
+    db.commit()
+    db.refresh(medicine)
+
+    return medicine
+

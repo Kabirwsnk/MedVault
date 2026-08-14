@@ -7,7 +7,8 @@ from app.models.medical_record import MedicalRecord
 
 from app.schemas.medical_record import (
     MedicalRecordCreate,
-    MedicalRecordResponse
+    MedicalRecordResponse,
+    MedicalRecordUpdate
 )
 from app.schemas.patient import PatientProfileResponse
 
@@ -128,3 +129,40 @@ def get_patient_profile(
         "phone_number": patient.phone_number,
         "medical_records": patient.records
     }
+    
+@router.put(
+    "/{record_id}",
+    response_model=MedicalRecordResponse
+)
+def update_medical_record(
+    record_id: int,
+    updated_data: MedicalRecordUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor"])
+    )
+):
+
+    record = (
+        db.query(MedicalRecord)
+        .filter(
+            MedicalRecord.id == record_id
+        )
+        .first()
+    )
+
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail="Medical record not found"
+        )
+
+    record.diagnosis = updated_data.diagnosis
+    record.prescription = updated_data.prescription
+    record.notes = updated_data.notes
+
+    db.commit()
+
+    db.refresh(record)
+
+    return record    

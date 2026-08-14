@@ -9,10 +9,30 @@ from app.models.patient import Patient
 from app.schemas.patient import (
     PatientCreate,
     PatientResponse,
-    PatientSearchResponse
+    PatientSearchResponse,
+    PatientProfileResponse,
+    PatientUpdate
+)
+
+from app.schemas.timeline import (
+    PatientTimelineResponse,
+    TimelineMedicalRecord,
+    TimelinePrescription
 )
 
 from app.utils.roles import require_role
+from app.models.medical_record import MedicalRecord
+
+from sqlalchemy.orm import joinedload
+
+from app.models.medical_record import MedicalRecord
+from app.schemas.timeline import (
+    PatientTimelineResponse,
+    TimelineMedicalRecord,
+    TimelinePrescription
+)
+
+from app.models.prescription import Prescription
 
 router = APIRouter(
     prefix="/patients",
@@ -157,3 +177,161 @@ def create_patient(
     db.refresh(new_patient)
 
     return new_patient
+
+@router.get(
+    "/profile/{beneficiary_id}",
+    response_model=PatientProfileResponse
+)
+def get_patient_profile(
+    beneficiary_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role([
+            "doctor",
+            "registration_worker",
+            "patient"
+        ])
+    )
+):
+
+    patient = (
+        db.query(Patient)
+        .filter(
+            Patient.beneficiary_id == beneficiary_id
+        )
+        .first()
+    )
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found"
+        )
+
+    return {
+        "beneficiary_id": patient.beneficiary_id,
+        "full_name": patient.full_name,
+        "phone_number": patient.phone_number,
+
+        "blood_group": patient.blood_group,
+        "date_of_birth": patient.date_of_birth,
+        "gender": patient.gender,
+        "height_cm": patient.height_cm,
+        "weight_kg": patient.weight_kg,
+        "emergency_contact": patient.emergency_contact,
+
+        "medical_records": patient.records
+    }
+    
+@router.put(
+    "/{beneficiary_id}",
+    response_model=PatientResponse
+)
+def update_patient(
+    beneficiary_id: str,
+    updated_data: PatientUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role([
+            "doctor",
+            "registration_worker"
+        ])
+    )
+):
+
+    patient = (
+        db.query(Patient)
+        .filter(
+            Patient.beneficiary_id == beneficiary_id
+        )
+        .first()
+    )
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found"
+        )
+
+    patient.phone_number = updated_data.phone_number
+    patient.blood_group = updated_data.blood_group
+    patient.date_of_birth = updated_data.date_of_birth
+    patient.gender = updated_data.gender
+    patient.height_cm = updated_data.height_cm
+    patient.weight_kg = updated_data.weight_kg
+    patient.emergency_contact = updated_data.emergency_contact
+
+    db.commit()
+
+    db.refresh(patient)
+
+    return patient    
+
+@router.get(
+    "/timeline/{beneficiary_id}",
+    response_model=PatientTimelineResponse
+)
+def patient_timeline(
+    beneficiary_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor"])
+    )
+):
+
+    patient = (
+        db.query(Patient)
+        .options(
+            joinedload(Patient.records)
+            .joinedload(
+                MedicalRecord.prescriptions
+            )
+            .joinedload(Prescription.medicine)
+        )
+        .filter(
+            Patient.beneficiary_id == beneficiary_id
+        )
+        .first()
+    )
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found."
+        )
+
+    medical_records = []
+
+    for record in patient.records:
+
+        prescriptions = []
+
+        for prescription in record.prescriptions:
+
+            prescriptions.append(
+                TimelinePrescription(
+                    id=prescription.id,
+                    quantity=prescription.quantity,
+                    dosage=prescription.dosage,
+                    duration=prescription.duration,
+                    dispensed=prescription.dispensed,
+                    dispensed_at=prescription.dispensed_at,
+                    medicine_name=prescription.medicine.medicine_name
+                )
+            )
+
+        medical_records.append(
+            TimelineMedicalRecord(
+                id=record.id,
+                diagnosis=record.diagnosis,
+                prescription=record.prescription,
+                notes=record.notes,
+                prescriptions=prescriptions
+            )
+        )
+
+    return {
+        "beneficiary_id": patient.beneficiary_id,
+        "full_name": patient.full_name,
+        "medical_records": medical_records
+    }

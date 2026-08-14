@@ -1,91 +1,101 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
+
 from app.models.patient import Patient
+from app.models.medical_record import MedicalRecord
+from app.models.prescription import Prescription
+from app.models.medicine import Medicine
+
+from app.schemas.dashboard import (
+    DashboardResponse,
+    RecentPatientResponse,
+    RecentMedicalRecordResponse
+)
+
 from app.utils.roles import require_role
 
-from sqlalchemy import func
-from app.models.medical_record import MedicalRecord
 
 router = APIRouter(
     prefix="/dashboard",
     tags=["Dashboard"]
 )
 
-@router.get("/doctor/stats")
-def doctor_dashboard_stats(
+@router.get(
+    "/stats",
+    response_model=DashboardResponse
+)
+def dashboard_stats(
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(["doctor"]))
+    current_user=Depends(
+        require_role(["doctor"])
+    )
 ):
 
-    total_patients = db.query(Patient).count()
-
-    total_records = db.query(MedicalRecord).count()
-
-    latest_patient = (
+    total_patients = (
         db.query(Patient)
-        .order_by(Patient.id.desc())
-        .first()
+        .count()
     )
 
-    latest_record = (
+    total_medical_records = (
         db.query(MedicalRecord)
-        .order_by(MedicalRecord.id.desc())
-        .first()
+        .count()
+    )
+
+    total_prescriptions = (
+        db.query(Prescription)
+        .count()
+    )
+
+    total_medicines = (
+        db.query(Medicine)
+        .count()
     )
 
     return {
         "total_patients": total_patients,
-        "total_medical_records": total_records,
-        "latest_registered_patient": (
-            latest_patient.full_name
-            if latest_patient
-            else None
-        ),
-        "latest_record_id": (
-            latest_record.id
-            if latest_record
-            else None
-        )
-    }    
-
-
-@router.get("/doctor/{beneficiary_id}")
-def doctor_dashboard(
-    beneficiary_id: str,
-    db: Session = Depends(get_db),
-    current_user=Depends(require_role(["doctor"]))
-):
-
-    patient = (
-        db.query(Patient)
-        .options(joinedload(Patient.records))
-        .filter(Patient.beneficiary_id == beneficiary_id)
-        .first()
-    )
-
-    if not patient:
-        raise HTTPException(
-            status_code=404,
-            detail="Patient not found."
-        )
-
-    records = patient.records
-
-    latest_visit = None
-
-    if records:
-        latest_visit = records[-1]
-
-    return {
-        "patient": {
-            "beneficiary_id": patient.beneficiary_id,
-            "full_name": patient.full_name,
-            "phone_number": patient.phone_number
-        },
-        "total_visits": len(records),
-        "latest_visit": latest_visit,
-        "medical_history": records
+        "total_medical_records": total_medical_records,
+        "total_prescriptions": total_prescriptions,
+        "total_medicines": total_medicines
     }
     
+@router.get(
+    "/recent-patients",
+    response_model=list[RecentPatientResponse]
+)
+def recent_patients(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor"])
+    )
+):
+
+    patients = (
+        db.query(Patient)
+        .order_by(Patient.id.desc())
+        .limit(10)
+        .all()
+    )
+
+    return patients  
+
+@router.get(
+    "/recent-records",
+    response_model=list[RecentMedicalRecordResponse]
+)
+def recent_records(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor"])
+    )
+):
+
+    records = (
+        db.query(MedicalRecord)
+        .order_by(MedicalRecord.id.desc())
+        .limit(10)
+        .all()
+    )
+
+    return records  

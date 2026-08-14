@@ -12,6 +12,8 @@ from app.schemas.prescription import (
     PrescriptionResponse
 )
 
+from datetime import datetime
+
 from app.utils.roles import require_role
 
 router = APIRouter(
@@ -72,3 +74,107 @@ def create_prescription(
     db.refresh(new_prescription)
 
     return new_prescription
+
+@router.get(
+    "/details/{prescription_id}",
+    response_model=PrescriptionResponse
+)
+def get_prescription(
+    prescription_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor", "pharmacy"])
+    )
+):
+
+    prescription = (
+        db.query(Prescription)
+        .filter(
+            Prescription.id == prescription_id
+        )
+        .first()
+    )
+
+    if not prescription:
+        raise HTTPException(
+            status_code=404,
+            detail="Prescription not found."
+        )
+
+    return prescription
+
+@router.get(
+    "/",
+    response_model=list[PrescriptionResponse]
+)
+def get_all_prescriptions(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor", "pharmacy"])
+    )
+):
+
+    return db.query(Prescription).all()
+
+@router.post(
+    "/{prescription_id}/dispense",
+    response_model=PrescriptionResponse
+)
+def dispense_prescription(
+    prescription_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["pharmacy"])
+    )
+):
+
+    prescription = (
+        db.query(Prescription)
+        .filter(
+            Prescription.id == prescription_id
+        )
+        .first()
+    )
+
+    if not prescription:
+        raise HTTPException(
+            status_code=404,
+            detail="Prescription not found."
+        )
+
+    if prescription.dispensed:
+        raise HTTPException(
+            status_code=400,
+            detail="Prescription already dispensed."
+        )
+
+    medicine = (
+        db.query(Medicine)
+        .filter(
+            Medicine.id == prescription.medicine_id
+        )
+        .first()
+    )
+
+    if not medicine:
+        raise HTTPException(
+            status_code=404,
+            detail="Medicine not found."
+        )
+
+    if medicine.stock < prescription.quantity:
+        raise HTTPException(
+            status_code=400,
+            detail="Insufficient stock."
+        )
+
+    medicine.stock -= prescription.quantity
+
+    prescription.dispensed = True
+    prescription.dispensed_at = datetime.utcnow()
+
+    db.commit()
+
+    db.refresh(prescription)
+
+    return prescription

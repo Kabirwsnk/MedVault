@@ -17,3 +17,9 @@ class MedicineResponse(BaseModel):
 
     class Config:
         from_attributes = True
+        
+        
+class MedicineUpdate(BaseModel):
+    manufacturer: str
+    unit: str
+    stock: int                
