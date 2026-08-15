@@ -76,6 +76,30 @@ def create_prescription(
     return new_prescription
 
 @router.get(
+    "/dispensed/history",
+    response_model=list[PrescriptionResponse]
+)
+def dispensing_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor", "pharmacy"])
+    )
+):
+
+    prescriptions = (
+        db.query(Prescription)
+        .filter(
+            Prescription.dispensed == True
+        )
+        .order_by(
+            Prescription.dispensed_at.desc()
+        )
+        .all()
+    )
+
+    return prescriptions
+
+@router.get(
     "/details/{prescription_id}",
     response_model=PrescriptionResponse
 )
@@ -178,3 +202,27 @@ def dispense_prescription(
     db.refresh(prescription)
 
     return prescription
+
+@router.get(
+    "/dispensed/history",
+    response_model=list[PrescriptionResponse]
+)
+def dispensing_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["doctor", "pharmacy"])
+    )
+):
+
+    prescriptions = (
+        db.query(Prescription)
+        .filter(
+            Prescription.dispensed == True
+        )
+        .order_by(
+            Prescription.dispensed_at.desc()
+        )
+        .all()
+    )
+
+    return prescriptions

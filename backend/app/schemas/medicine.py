@@ -22,4 +22,7 @@ class MedicineResponse(BaseModel):
 class MedicineUpdate(BaseModel):
     manufacturer: str
     unit: str
-    stock: int                
+    stock: int       
+    
+class MedicineRestock(BaseModel):
+    quantity: int             

@@ -6,8 +6,10 @@ from app.models.medicine import Medicine
 from app.schemas.medicine import (
     MedicineCreate,
     MedicineResponse,
-    MedicineUpdate
+    MedicineUpdate,
+    MedicineRestock
 )
+
 from app.utils.roles import require_role
 
 router = APIRouter(
@@ -98,6 +100,62 @@ def low_stock_medicines(
     )
 
     return medicines
+
+@router.get(
+    "/critical-stock",
+    response_model=list[MedicineResponse]
+)
+def critical_stock_medicines(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["pharmacy"])
+    )
+):
+
+    medicines = (
+        db.query(Medicine)
+        .filter(
+            Medicine.stock < 10
+        )
+        .all()
+    )
+
+    return medicines
+
+@router.put(
+    "/{medicine_id}/restock",
+    response_model=MedicineResponse
+)
+def restock_medicine(
+    medicine_id: int,
+    restock: MedicineRestock,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role(["pharmacy"])
+    )
+):
+
+    medicine = (
+        db.query(Medicine)
+        .filter(
+            Medicine.id == medicine_id
+        )
+        .first()
+    )
+
+    if not medicine:
+        raise HTTPException(
+            status_code=404,
+            detail="Medicine not found."
+        )
+
+    medicine.stock += restock.quantity
+
+    db.commit()
+
+    db.refresh(medicine)
+
+    return medicine
 
 
 # ----------------------------------------

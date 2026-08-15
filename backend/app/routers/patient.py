@@ -34,6 +34,8 @@ from app.schemas.timeline import (
 
 from app.models.prescription import Prescription
 
+from app.schemas.beneficiary_card import (BeneficiaryCardResponse)
+
 router = APIRouter(
     prefix="/patients",
     tags=["Patients"]
@@ -82,6 +84,60 @@ def list_all_patients(
     patients = db.query(Patient).all()
 
     return patients
+
+@router.get(
+    "/card/{beneficiary_id}",
+    response_model=BeneficiaryCardResponse
+)
+def beneficiary_card(
+    beneficiary_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role([
+            "doctor",
+            "registration_worker",
+            "patient"
+        ])
+    )
+):
+
+    patient = (
+        db.query(Patient)
+        .options(
+            joinedload(Patient.records)
+        )
+        .filter(
+            Patient.beneficiary_id == beneficiary_id
+        )
+        .first()
+    )
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found."
+        )
+
+    total_prescriptions = 0
+
+    for record in patient.records:
+        total_prescriptions += len(
+            record.prescriptions
+        )
+
+    return {
+        "beneficiary_id": patient.beneficiary_id,
+        "full_name": patient.full_name,
+        "phone_number": patient.phone_number,
+        "blood_group": patient.blood_group,
+        "date_of_birth": patient.date_of_birth,
+        "gender": patient.gender,
+        "emergency_contact": patient.emergency_contact,
+        "total_medical_records": len(
+            patient.records
+        ),
+        "total_prescriptions": total_prescriptions
+    }
 
 @router.get("/{beneficiary_id}", response_model=PatientResponse)
 def get_patient(
