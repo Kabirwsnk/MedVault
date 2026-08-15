@@ -104,7 +104,9 @@ def beneficiary_card(
     patient = (
         db.query(Patient)
         .options(
-            joinedload(Patient.records)
+            joinedload(Patient.records).joinedload(
+                MedicalRecord.prescriptions
+            )
         )
         .filter(
             Patient.beneficiary_id == beneficiary_id

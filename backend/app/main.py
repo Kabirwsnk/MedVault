@@ -28,6 +28,8 @@ from app.routers.ai import router as ai_router
 
 from app.routers.pharmacy_dashboard import (router as pharmacy_dashboard_router)
 
+from app.routers.patient_dashboard import router as patient_dashboard_router
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -42,6 +44,7 @@ app.include_router(prescription_router)
 app.include_router(pharmacy_router)
 app.include_router(ai_router)
 app.include_router(pharmacy_dashboard_router)
+app.include_router(patient_dashboard_router)
 
 @app.get("/")
 def home():

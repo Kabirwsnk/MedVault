@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -31,4 +32,11 @@ class User(Base):
     is_active = Column(
         Boolean,
         default=True
+    )
+
+    patient = relationship(
+        "Patient",
+        back_populates="user",
+        foreign_keys="Patient.user_id",
+        uselist=False
     )

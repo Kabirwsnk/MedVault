@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -35,6 +35,13 @@ class Patient(Base):
         nullable=False
     )
 
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        unique=True,
+        nullable=True
+    )
+
     blood_group = Column(
         String,
         nullable=True
@@ -68,4 +75,11 @@ class Patient(Base):
     records = relationship(
         "MedicalRecord",
         back_populates="patient"
+    )
+
+    user = relationship(
+        "User",
+        back_populates="patient",
+        foreign_keys=[user_id],
+        uselist=False
     )

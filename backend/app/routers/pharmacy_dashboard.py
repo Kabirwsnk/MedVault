@@ -6,9 +6,7 @@ from app.dependencies import get_db
 from app.models.medicine import Medicine
 from app.models.prescription import Prescription
 
-from app.schemas.pharmacy_dashboard import (
-    PharmacyDashboardResponse
-)
+from app.schemas.pharmacy_dashboard import PharmacyDashboardResponse
 
 from app.utils.roles import require_role
 
@@ -23,7 +21,7 @@ router = APIRouter(
     "/stats",
     response_model=PharmacyDashboardResponse
 )
-def pharmacy_dashboard(
+def pharmacy_dashboard_stats(
     db: Session = Depends(get_db),
     current_user=Depends(
         require_role(["pharmacy"])
@@ -32,12 +30,6 @@ def pharmacy_dashboard(
 
     total_medicines = (
         db.query(Medicine)
-        .count()
-    )
-
-    low_stock_medicines = (
-        db.query(Medicine)
-        .filter(Medicine.stock < 20)
         .count()
     )
 
@@ -62,10 +54,18 @@ def pharmacy_dashboard(
         .count()
     )
 
+    low_stock_medicines = (
+        db.query(Medicine)
+        .filter(
+            Medicine.stock < 10
+        )
+        .count()
+    )
+
     return {
         "total_medicines": total_medicines,
-        "low_stock_medicines": low_stock_medicines,
         "total_prescriptions": total_prescriptions,
         "pending_prescriptions": pending_prescriptions,
-        "dispensed_prescriptions": dispensed_prescriptions
+        "dispensed_prescriptions": dispensed_prescriptions,
+        "low_stock_medicines": low_stock_medicines
     }
