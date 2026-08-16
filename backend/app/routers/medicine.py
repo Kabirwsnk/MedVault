@@ -1,18 +1,23 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db
-from app.models.medicine import Medicine
-from app.models.inventory_movement import InventoryMovement
 from app.config import CRITICAL_STOCK_THRESHOLD, LOW_STOCK_THRESHOLD
+from app.dependencies import get_db
+from app.models.inventory_movement import InventoryMovement
+from app.models.medicine import Medicine
 from app.schemas.medicine import (
+    InventoryMovementResponse,
     MedicineCreate,
     MedicineResponse,
+    MedicineRestock,
     MedicineUpdate,
-    MedicineRestock
 )
-
-from app.utils.roles import require_role
+from app.utils.roles import (
+    ROLE_ADMIN,
+    ROLE_DOCTOR,
+    ROLE_PHARMACY,
+    require_role,
+)
 
 router = APIRouter(
     prefix="/medicines",
@@ -25,16 +30,16 @@ router = APIRouter(
 # ----------------------------------------
 @router.post(
     "/",
-    response_model=MedicineResponse
+    response_model=MedicineResponse,
+    status_code=201,
 )
 def add_medicine(
     medicine: MedicineCreate,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["pharmacy"])
-    )
+        require_role([ROLE_PHARMACY, ROLE_ADMIN])
+    ),
 ):
-
     existing = (
         db.query(Medicine)
         .filter(
@@ -73,11 +78,11 @@ def add_medicine(
 def get_all_medicines(
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["doctor", "pharmacy"])
-    )
+        require_role([ROLE_DOCTOR, ROLE_PHARMACY, ROLE_ADMIN])
+    ),
 ):
-
     return db.query(Medicine).all()
+
 
 # ----------------------------------------
 # Low Stock Medicines
@@ -89,10 +94,9 @@ def get_all_medicines(
 def low_stock_medicines(
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["doctor", "pharmacy"])
-    )
+        require_role([ROLE_DOCTOR, ROLE_PHARMACY, ROLE_ADMIN])
+    ),
 ):
-
     medicines = (
         db.query(Medicine)
         .filter(
@@ -103,6 +107,10 @@ def low_stock_medicines(
 
     return medicines
 
+
+# ----------------------------------------
+# Critical Stock Medicines
+# ----------------------------------------
 @router.get(
     "/critical-stock",
     response_model=list[MedicineResponse]
@@ -110,10 +118,9 @@ def low_stock_medicines(
 def critical_stock_medicines(
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["pharmacy"])
-    )
+        require_role([ROLE_PHARMACY, ROLE_ADMIN])
+    ),
 ):
-
     medicines = (
         db.query(Medicine)
         .filter(
@@ -124,6 +131,31 @@ def critical_stock_medicines(
 
     return medicines
 
+
+# ----------------------------------------
+# Inventory Movement Audit History
+# ----------------------------------------
+@router.get(
+    "/movements/history",
+    response_model=list[InventoryMovementResponse]
+)
+def inventory_movements_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(
+        require_role([ROLE_PHARMACY, ROLE_DOCTOR, ROLE_ADMIN])
+    ),
+):
+    movements = (
+        db.query(InventoryMovement)
+        .order_by(InventoryMovement.created_at.desc())
+        .all()
+    )
+    return movements
+
+
+# ----------------------------------------
+# Restock Medicine
+# ----------------------------------------
 @router.put(
     "/{medicine_id}/restock",
     response_model=MedicineResponse
@@ -133,10 +165,9 @@ def restock_medicine(
     restock: MedicineRestock,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["pharmacy"])
-    )
+        require_role([ROLE_PHARMACY, ROLE_ADMIN])
+    ),
 ):
-
     medicine = db.query(Medicine).filter(Medicine.id == medicine_id).with_for_update().first()
 
     if not medicine:
@@ -157,7 +188,6 @@ def restock_medicine(
     ))
 
     db.commit()
-
     db.refresh(medicine)
 
     return medicine
@@ -174,10 +204,9 @@ def get_medicine(
     medicine_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["doctor", "pharmacy"])
-    )
+        require_role([ROLE_DOCTOR, ROLE_PHARMACY, ROLE_ADMIN])
+    ),
 ):
-
     medicine = (
         db.query(Medicine)
         .filter(
@@ -194,6 +223,7 @@ def get_medicine(
 
     return medicine
 
+
 # ----------------------------------------
 # Update Medicine
 # ----------------------------------------
@@ -206,10 +236,9 @@ def update_medicine(
     updated_data: MedicineUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["pharmacy"])
-    )
+        require_role([ROLE_PHARMACY, ROLE_ADMIN])
+    ),
 ):
-
     medicine = (
         db.query(Medicine)
         .filter(
@@ -244,4 +273,3 @@ def update_medicine(
     db.refresh(medicine)
 
     return medicine
-

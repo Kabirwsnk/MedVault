@@ -47,12 +47,12 @@ class Patient(Base):
     )
 
     blood_group = Column(
-        Date,
+        String,
         nullable=True
     )
 
     date_of_birth = Column(
-        String,
+        Date,
         nullable=True
     )
 

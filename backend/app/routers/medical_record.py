@@ -1,19 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.dependencies import get_db
 from app.models.patient import Patient
 from app.models.medical_record import MedicalRecord
-
 from app.schemas.medical_record import (
     MedicalRecordCreate,
     MedicalRecordResponse,
-    MedicalRecordUpdate
+    MedicalRecordUpdate,
 )
 from app.schemas.patient import PatientProfileResponse
-
-from app.utils.roles import require_role
-
+from app.utils.roles import ROLE_ADMIN, ROLE_DOCTOR, require_role
 
 router = APIRouter(
     prefix="/medical-records",
@@ -32,9 +29,8 @@ def add_medical_record(
     beneficiary_id: str,
     record: MedicalRecordCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(["doctor"]))
+    current_user=Depends(require_role([ROLE_DOCTOR])),
 ):
-
     patient = (
         db.query(Patient)
         .filter(
@@ -71,9 +67,8 @@ def add_medical_record(
 def get_medical_history(
     beneficiary_id: str,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(["doctor"]))
+    current_user=Depends(require_role([ROLE_DOCTOR])),
 ):
-
     patient = (
         db.query(Patient)
         .options(joinedload(Patient.records))
@@ -106,9 +101,8 @@ def get_medical_history(
 def get_patient_profile(
     beneficiary_id: str,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(["doctor"]))
+    current_user=Depends(require_role([ROLE_DOCTOR])),
 ):
-
     patient = (
         db.query(Patient)
         .options(joinedload(Patient.records))
@@ -130,7 +124,11 @@ def get_patient_profile(
         "phone_number": patient.phone_number,
         "medical_records": patient.records
     }
-    
+
+
+# ------------------------------------------
+# Update Medical Record (Authoring Doctor / Admin)
+# ------------------------------------------
 @router.put(
     "/{record_id}",
     response_model=MedicalRecordResponse
@@ -140,10 +138,9 @@ def update_medical_record(
     updated_data: MedicalRecordUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["doctor"])
-    )
+        require_role([ROLE_DOCTOR, ROLE_ADMIN])
+    ),
 ):
-
     record = (
         db.query(MedicalRecord)
         .filter(
@@ -158,12 +155,17 @@ def update_medical_record(
             detail="Medical record not found"
         )
 
+    if current_user.role != ROLE_ADMIN and record.doctor_id is not None and record.doctor_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not authorized to edit another doctor's medical record."
+        )
+
     record.diagnosis = updated_data.diagnosis
     record.prescription = updated_data.prescription
     record.notes = updated_data.notes
 
     db.commit()
-
     db.refresh(record)
 
     return record

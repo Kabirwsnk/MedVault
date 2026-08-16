@@ -1,5 +1,5 @@
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
-from sqlalchemy.orm import relationship  # type: ignore[import]
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -17,9 +17,15 @@ class MedicalRecord(Base):
         Integer,
         ForeignKey("patients.id", ondelete="RESTRICT"),
         nullable=False,
+        index=True,
     )
 
-    doctor_id = Column(Integer, ForeignKey("users.id", ondelete="RESTRICT"), nullable=True, index=True)
+    doctor_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
 
     diagnosis = Column(
         String,
@@ -45,7 +51,7 @@ class MedicalRecord(Base):
         "Patient",
         back_populates="records"
     )
-    
+
     prescriptions = relationship(
         "Prescription",
         back_populates="medical_record",
