@@ -51,6 +51,7 @@ def add_medical_record(
 
     new_record = MedicalRecord(
         patient_id=patient.id,
+        doctor_id=current_user.id,
         diagnosis=record.diagnosis,
         prescription=record.prescription,
         notes=record.notes
@@ -165,4 +166,4 @@ def update_medical_record(
 
     db.refresh(record)
 
-    return record    
+    return record

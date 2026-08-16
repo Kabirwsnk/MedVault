@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import CheckConstraint, Column, Date, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -6,6 +6,10 @@ from app.database import Base
 
 class Patient(Base):
     __tablename__ = "patients"
+    __table_args__ = (
+        CheckConstraint("height_cm IS NULL OR height_cm > 0", name="ck_patients_height_positive"),
+        CheckConstraint("weight_kg IS NULL OR weight_kg > 0", name="ck_patients_weight_positive"),
+    )
 
     id = Column(
         Integer,
@@ -37,13 +41,13 @@ class Patient(Base):
 
     user_id = Column(
         Integer,
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="SET NULL"),
         unique=True,
         nullable=True
     )
 
     blood_group = Column(
-        String,
+        Date,
         nullable=True
     )
 
@@ -82,4 +86,9 @@ class Patient(Base):
         back_populates="patient",
         foreign_keys=[user_id],
         uselist=False
+    )
+
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )

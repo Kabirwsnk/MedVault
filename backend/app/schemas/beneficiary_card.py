@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import BaseModel
 
 
@@ -11,7 +13,7 @@ class BeneficiaryCardResponse(BaseModel):
 
     blood_group: str | None = None
 
-    date_of_birth: str | None = None
+    date_of_birth: date | None = None
 
     gender: str | None = None
 

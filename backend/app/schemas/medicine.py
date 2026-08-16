@@ -1,11 +1,11 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MedicineCreate(BaseModel):
     medicine_name: str
     manufacturer: str
     unit: str
-    stock: int
+    stock: int = Field(ge=0)
 
 
 class MedicineResponse(BaseModel):
@@ -25,4 +25,4 @@ class MedicineUpdate(BaseModel):
     stock: int       
     
 class MedicineRestock(BaseModel):
-    quantity: int             
+    quantity: int = Field(gt=0)

@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.dependencies import get_db
 from app.models.medicine import Medicine
+from app.models.inventory_movement import InventoryMovement
+from app.config import CRITICAL_STOCK_THRESHOLD, LOW_STOCK_THRESHOLD
 from app.schemas.medicine import (
     MedicineCreate,
     MedicineResponse,
@@ -94,7 +96,7 @@ def low_stock_medicines(
     medicines = (
         db.query(Medicine)
         .filter(
-            Medicine.stock < 10
+            Medicine.stock < LOW_STOCK_THRESHOLD
         )
         .all()
     )
@@ -115,7 +117,7 @@ def critical_stock_medicines(
     medicines = (
         db.query(Medicine)
         .filter(
-            Medicine.stock < 10
+            Medicine.stock < CRITICAL_STOCK_THRESHOLD
         )
         .all()
     )
@@ -135,13 +137,7 @@ def restock_medicine(
     )
 ):
 
-    medicine = (
-        db.query(Medicine)
-        .filter(
-            Medicine.id == medicine_id
-        )
-        .first()
-    )
+    medicine = db.query(Medicine).filter(Medicine.id == medicine_id).with_for_update().first()
 
     if not medicine:
         raise HTTPException(
@@ -149,7 +145,16 @@ def restock_medicine(
             detail="Medicine not found."
         )
 
+    stock_before = medicine.stock
     medicine.stock += restock.quantity
+    db.add(InventoryMovement(
+        medicine_id=medicine.id,
+        performed_by_user_id=current_user.id,
+        movement_type="restock",
+        quantity=restock.quantity,
+        stock_before=stock_before,
+        stock_after=medicine.stock,
+    ))
 
     db.commit()
 
@@ -219,9 +224,21 @@ def update_medicine(
             detail="Medicine not found."
         )
 
+    stock_before = medicine.stock
     medicine.manufacturer = updated_data.manufacturer
     medicine.unit = updated_data.unit
     medicine.stock = updated_data.stock
+
+    if medicine.stock != stock_before:
+        db.add(InventoryMovement(
+            medicine_id=medicine.id,
+            performed_by_user_id=current_user.id,
+            movement_type="adjustment",
+            quantity=medicine.stock - stock_before,
+            stock_before=stock_before,
+            stock_after=medicine.stock,
+            notes="Catalog stock update",
+        ))
 
     db.commit()
     db.refresh(medicine)

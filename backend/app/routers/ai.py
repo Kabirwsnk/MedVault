@@ -6,6 +6,9 @@ from app.dependencies import get_db
 from app.ai.symptom_checker import analyze_symptoms
 from app.ai.provider import ask_ai
 from app.ai.context_builder import build_patient_context
+from app.models.patient import Patient
+from app.utils.authorization import CLINICAL_STAFF, require_patient_access
+from app.utils.roles import ROLE_DOCTOR, ROLE_PATIENT, require_role
 
 
 router = APIRouter(
@@ -33,8 +36,15 @@ def symptom_checker(symptoms: str):
 def ai_chat(
     beneficiary_id: str,
     question: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PATIENT]))
 ):
+
+    patient = db.query(Patient).filter(Patient.beneficiary_id == beneficiary_id).first()
+    if not patient:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Patient not found")
+    require_patient_access(current_user, patient, CLINICAL_STAFF)
 
     context = build_patient_context(
         beneficiary_id,

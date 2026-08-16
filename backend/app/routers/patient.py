@@ -20,7 +20,8 @@ from app.schemas.timeline import (
     TimelinePrescription
 )
 
-from app.utils.roles import require_role
+from app.utils.roles import ROLE_ADMIN, ROLE_DOCTOR, ROLE_PATIENT, ROLE_REGISTRATION_WORKER, require_role
+from app.utils.authorization import CLINICAL_STAFF, DEMOGRAPHIC_STAFF, require_patient_access
 from app.models.medical_record import MedicalRecord
 
 from sqlalchemy.orm import joinedload
@@ -43,7 +44,8 @@ router = APIRouter(
     
 @router.get("/", response_model=list[PatientResponse])
 def get_all_patients(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role([ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_ADMIN]))
 ):
     patients = db.query(Patient).all()
 
@@ -94,9 +96,7 @@ def beneficiary_card(
     db: Session = Depends(get_db),
     current_user=Depends(
         require_role([
-            "doctor",
-            "registration_worker",
-            "patient"
+            ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_PATIENT, ROLE_ADMIN
         ])
     )
 ):
@@ -119,6 +119,8 @@ def beneficiary_card(
             status_code=404,
             detail="Patient not found."
         )
+
+    require_patient_access(current_user, patient, DEMOGRAPHIC_STAFF)
 
     total_prescriptions = 0
 
@@ -144,7 +146,8 @@ def beneficiary_card(
 @router.get("/{beneficiary_id}", response_model=PatientResponse)
 def get_patient(
     beneficiary_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role([ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_PATIENT, ROLE_ADMIN]))
 ):
 
     patient = (
@@ -159,6 +162,8 @@ def get_patient(
             status_code=404,
             detail="Patient not found"
         )
+
+    require_patient_access(current_user, patient, DEMOGRAPHIC_STAFF)
 
     return patient
 
@@ -205,9 +210,6 @@ def create_patient(
     )
     .first()
 )
-    print("Incoming Aadhaar:", patient.aadhar_number)
-    print("Existing Patient:", existing_patient)
-
     if existing_patient:
         raise HTTPException(
             status_code=400,
@@ -245,9 +247,7 @@ def get_patient_profile(
     db: Session = Depends(get_db),
     current_user=Depends(
         require_role([
-            "doctor",
-            "registration_worker",
-            "patient"
+            ROLE_DOCTOR, ROLE_PATIENT, ROLE_ADMIN
         ])
     )
 ):
@@ -265,6 +265,8 @@ def get_patient_profile(
             status_code=404,
             detail="Patient not found"
         )
+
+    require_patient_access(current_user, patient, CLINICAL_STAFF)
 
     return {
         "beneficiary_id": patient.beneficiary_id,

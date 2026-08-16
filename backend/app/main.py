@@ -19,6 +19,7 @@ from app.models.medicine import Medicine
 from app.routers.medicine import router as medicine_router
 
 from app.models.prescription import Prescription
+from app.models.inventory_movement import InventoryMovement
 
 from app.routers.prescription import router as prescription_router
 
@@ -29,8 +30,6 @@ from app.routers.ai import router as ai_router
 from app.routers.pharmacy_dashboard import (router as pharmacy_dashboard_router)
 
 from app.routers.patient_dashboard import router as patient_dashboard_router
-
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 

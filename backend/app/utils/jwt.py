@@ -1,15 +1,20 @@
 from datetime import (
     datetime,
-    timedelta
+    timedelta,
+    timezone,
 )
 
 from jose import jwt
 
-SECRET_KEY = "medvault_super_secret_key"
+from app.config import (
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
+    JWT_ALGORITHM,
+    JWT_SECRET_KEY,
+)
 
-ALGORITHM = "HS256"
-
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+SECRET_KEY = JWT_SECRET_KEY
+ALGORITHM = JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = JWT_ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 def create_access_token(data: dict):
@@ -17,7 +22,7 @@ def create_access_token(data: dict):
     to_encode = data.copy()
 
     expire = (
-        datetime.utcnow()
+        datetime.now(timezone.utc)
         + timedelta(
             minutes=ACCESS_TOKEN_EXPIRE_MINUTES
         )

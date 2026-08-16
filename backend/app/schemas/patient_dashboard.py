@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import date, datetime
 
 
 class PatientPrescriptionResponse(BaseModel):
@@ -26,7 +26,7 @@ class PatientDashboardResponse(BaseModel):
     full_name: str
     phone_number: str
     blood_group: Optional[str] = None
-    date_of_birth: Optional[str] = None
+    date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     height_cm: Optional[int] = None
     weight_kg: Optional[int] = None

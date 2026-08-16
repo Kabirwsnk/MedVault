@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Integer, String, func
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -6,6 +6,12 @@ from app.database import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('admin', 'doctor', 'registration_worker', 'pharmacy', 'patient')",
+            name="ck_users_role",
+        ),
+    )
 
     id = Column(
         Integer,
@@ -31,7 +37,14 @@ class User(Base):
 
     is_active = Column(
         Boolean,
-        default=True
+        nullable=False,
+        default=True,
+        server_default="true",
+    )
+
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
     patient = relationship(

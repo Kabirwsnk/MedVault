@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, func
 
 from app.database import Base
 
@@ -7,6 +7,7 @@ from sqlalchemy.orm import relationship
 
 class Medicine(Base):
     __tablename__ = "medicines"
+    __table_args__ = (CheckConstraint("stock >= 0", name="ck_medicines_stock_nonnegative"),)
 
     id = Column(
         Integer,
@@ -31,10 +32,15 @@ class Medicine(Base):
 
     stock = Column(
         Integer,
-        default=0
+        nullable=False,
+        default=0,
+        server_default="0",
+    )
+
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
     
-    prescriptions = relationship(
-    "Prescription",
-    back_populates="medicine"
-    )
+    prescriptions = relationship("Prescription", back_populates="medicine")
+    inventory_movements = relationship("InventoryMovement", back_populates="medicine")
