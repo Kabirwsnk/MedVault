@@ -3,6 +3,7 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import text
 
 from app.dependencies import get_db
 from app.models.patient import Patient
@@ -92,25 +93,40 @@ def create_patient(
         require_role(["registration_worker"])
     ),
 ):
-
+    
     current_year = datetime.now().strftime("%y")
 
+# Prevent two registration workers from generating
+# the same beneficiary ID at the same time.
+    db.execute(
+        text("SELECT pg_advisory_xact_lock(260001)")
+    )
+    
     last_patient = (
         db.query(Patient)
-        .order_by(Patient.id.desc())
+        .filter(
+            Patient.beneficiary_id.like(
+                f"MV{current_year}%"
+            )
+        )
+        .order_by(
+            Patient.beneficiary_id.desc()
+        )
         .first()
     )
-
     if last_patient:
-
         last_number = int(
             last_patient.beneficiary_id[-4:]
         )
-
         new_number = last_number + 1
-
     else:
         new_number = 1
+        
+    if new_number > 9999:
+        raise HTTPException(
+            status_code=400,
+            detail="Beneficiary ID limit reached for the current year."
+        )
 
     beneficiary_id = (
         f"MV{current_year}{new_number:04d}"
