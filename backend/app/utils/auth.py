@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 
 from jose import jwt, JWTError
@@ -66,5 +66,36 @@ def get_current_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
+
+    return user
+
+
+def get_optional_current_user(request: Request, db: Session = Depends(get_db)):
+    """Return the authenticated user when a valid Authorization header is
+    present, otherwise return None. Does not raise HTTP errors for missing or
+    invalid tokens (useful for endpoints that allow optional auth).
+    """
+    auth = request.headers.get("authorization")
+    if not auth:
+        return None
+
+    parts = auth.split()
+    if len(parts) != 2:
+        return None
+
+    token = parts[1]
+
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except JWTError:
+        return None
+
+    email = payload.get("sub")
+    if not email:
+        return None
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not user.is_active:
+        return None
 
     return user

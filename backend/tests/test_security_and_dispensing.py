@@ -123,9 +123,20 @@ class SecurityAndDispensingTests(unittest.TestCase):
         medicine = Medicine(medicine_name="AuditMed", manufacturer="PharmaCorp", unit="capsule", stock=50)
         self.db.add(medicine)
         self.db.commit()
-
         # Restock creates a movement
-        client.put(f"/medicines/{medicine.id}/restock", json={"quantity": 25}, headers=pharmacy_headers)
+        res = client.put(f"/medicines/{medicine.id}/restock", json={"quantity": 25}, headers=pharmacy_headers)
+        self.assertEqual(res.status_code, 200)
+
+        # Stock updated and movement recorded
+        self.db.refresh(medicine)
+        self.assertEqual(medicine.stock, 75)
+        movements = self.db.query(InventoryMovement).filter(InventoryMovement.medicine_id == medicine.id).all()
+        self.assertGreaterEqual(len(movements), 1)
+
+        # History endpoint returns movements
+        res_hist = client.get("/medicines/movements/history", headers=pharmacy_headers)
+        self.assertEqual(res_hist.status_code, 200)
+        self.assertIsInstance(res_hist.json(), list)
 
     def test_beneficiary_card_qr_and_pdf(self):
         client = TestClient(app)
@@ -142,6 +153,47 @@ class SecurityAndDispensingTests(unittest.TestCase):
         self.assertEqual(res_pdf.status_code, 200)
         self.assertEqual(res_pdf.headers["content-type"], "application/pdf")
         self.assertGreater(len(res_pdf.content), 500)
+
+    def test_double_dispense_conflict(self):
+        # Create medicine + prescription and dispense twice via service
+        patient = self.db.query(Patient).first()
+        medicine = Medicine(medicine_name="DoubleDispense", manufacturer="Acme", unit="tablet", stock=5)
+        self.db.add(medicine)
+        self.db.flush()
+        record = MedicalRecord(patient_id=patient.id, doctor_id=self.doctor.id, diagnosis="Test", prescription="Plan")
+        self.db.add(record)
+        self.db.flush()
+        prescription = Prescription(medical_record_id=record.id, medicine_id=medicine.id, quantity=3, dosage="Daily", duration="3 days")
+        self.db.add(prescription)
+        self.db.commit()
+
+        # First dispense should succeed
+        dispense_prescription(self.db, prescription.id, self.pharmacist.id)
+
+        # Second dispense should raise HTTPException 409
+        from fastapi import HTTPException
+
+        with self.assertRaises(HTTPException) as cm:
+            dispense_prescription(self.db, prescription.id, self.pharmacist.id)
+
+        self.assertEqual(cm.exception.status_code, 409)
+
+    def test_patient_enrollment_and_card_authorization(self):
+        client = TestClient(app)
+
+        # Create a patient record without a linked user
+        new_patient = Patient(beneficiary_id="MV260010", full_name="EnrollMe", phone_number="9999999999", aadhar_number="333333333333")
+        self.db.add(new_patient)
+        self.db.commit()
+
+        # Enroll via public endpoint
+        res = client.post("/auth/patient-enrollment", json={"beneficiary_id": "MV260010", "email": "enroll@example.com", "password": "EnrollPass12345"})
+        self.assertEqual(res.status_code, 201)
+
+        # Ensure patient cannot view another patient's card
+        patient_headers = {"Authorization": "Bearer " + create_access_token({"sub": self.first_user.email, "role": "patient"})}
+        res_forbidden = client.get("/patients/card/MV260010", headers=patient_headers)
+        self.assertEqual(res_forbidden.status_code, 403)
 
 
 if __name__ == "__main__":

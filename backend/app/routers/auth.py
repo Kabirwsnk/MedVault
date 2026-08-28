@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+import os
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -9,6 +10,7 @@ from app.schemas.user import PatientEnrollment, UserCreate, UserResponse
 from app.utils.jwt import create_access_token
 from app.utils.roles import ROLE_ADMIN, ROLE_PATIENT, VALID_ROLES, require_role
 from app.utils.security import hash_password, verify_password
+from app.utils.auth import get_optional_current_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -31,7 +33,12 @@ def register_staff_user(
 
 
 @router.post("/patient-enrollment", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def enroll_patient(payload: PatientEnrollment, db: Session = Depends(get_db)):
+def enroll_patient(payload: PatientEnrollment, db: Session = Depends(get_db), current_user=Depends(get_optional_current_user)):
+    # Optional protection: if enabled, allow only admin/registration_worker to enroll
+    if os.getenv("PROTECT_PATIENT_ENROLLMENT", "false").lower() == "true":
+        if not current_user or current_user.role not in ("admin", "registration_worker"):
+            raise HTTPException(status_code=403, detail="Patient enrollment is disabled; contact an admin to create accounts.")
+
     patient = db.query(Patient).filter(Patient.beneficiary_id == payload.beneficiary_id).first()
     if not patient or patient.user_id is not None:
         raise HTTPException(status_code=400, detail="Patient account cannot be enrolled")
