@@ -61,37 +61,6 @@ def add_medical_record(
 
 
 # ------------------------------------------
-# Get Complete Medical History
-# ------------------------------------------
-@router.get("/{beneficiary_id}")
-def get_medical_history(
-    beneficiary_id: str,
-    db: Session = Depends(get_db),
-    current_user=Depends(require_role([ROLE_DOCTOR])),
-):
-    patient = (
-        db.query(Patient)
-        .options(joinedload(Patient.records))
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
-    )
-
-    if not patient:
-        raise HTTPException(
-            status_code=404,
-            detail="Patient not found."
-        )
-
-    return {
-        "beneficiary_id": patient.beneficiary_id,
-        "patient_name": patient.full_name,
-        "records": patient.records
-    }
-
-
-# ------------------------------------------
 # Get Patient Profile
 # ------------------------------------------
 @router.get(
@@ -123,6 +92,37 @@ def get_patient_profile(
         "full_name": patient.full_name,
         "phone_number": patient.phone_number,
         "medical_records": patient.records
+    }
+
+
+# ------------------------------------------
+# Get Complete Medical History
+# ------------------------------------------
+@router.get("/{beneficiary_id}")
+def get_medical_history(
+    beneficiary_id: str,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_role([ROLE_DOCTOR])),
+):
+    patient = (
+        db.query(Patient)
+        .options(joinedload(Patient.records))
+        .filter(
+            Patient.beneficiary_id == beneficiary_id
+        )
+        .first()
+    )
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found."
+        )
+
+    return {
+        "beneficiary_id": patient.beneficiary_id,
+        "patient_name": patient.full_name,
+        "records": patient.records
     }
 
 

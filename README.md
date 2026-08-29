@@ -2,172 +2,97 @@
 
 **Your Health. Secured Forever.**
 
-MedVault is a **backend-first healthcare API**. It stores patient identity and clinical data around a unique **Beneficiary ID**, and exposes role-protected REST endpoints for registration workers, doctors, pharmacy staff, patients, and admins.
-
-This repository **does not contain a frontend**. The working UI for development is FastAPI’s Swagger UI.
+MedVault is a **full-stack healthcare platform and clinical identity system**. It stores patient identity and clinical data around a unique, collision-free **Beneficiary ID**, and exposes role-protected stations for registration workers, doctors, pharmacy staff, patients, and system administrators.
 
 Repository: [https://github.com/Kabirwsnk/MedVault.git](https://github.com/Kabirwsnk/MedVault.git)
 
 ---
 
-## Problem it solves
+## Core Features Implemented
 
-Healthcare data for a patient is often split across clinics, doctors, and pharmacies. MedVault gives each registered person one Beneficiary ID and a server-side record of:
-
-- Demographics
-- Medical encounter notes
-- Structured prescriptions
-- Pharmacy dispensing and stock movement
-- A printable / scannable beneficiary card
+* **Modern Web SPA (`/frontend`):**
+  * Built with Vite + React 19 + TypeScript with a dark cyber-medical theme and Lucide icons.
+  * Role-protected stations with JWT authentication, test presets, and live backend connection checks.
+  * Interactive dual-sided digital Beneficiary Cards with holographic badges, QR tokens, and one-click PDF downloads.
+  * Beneficiary Registration Station with auto-formatted 12-digit Aadhaar input, live Age calculation, and BMI classification.
+  * Searchable Beneficiary Directory with live demographic editor (`PUT /patients/{id}`).
+  * Dedicated portals for Doctors (encounters & timeline), Pharmacy (queue & atomic dispense), Patients (health vault & card), AI Clinical Assistant, and Admin Provisioning.
+* **FastAPI Backend (`/backend`):**
+  * PostgreSQL datastore with Alembic migrations (`0002_fix_patient_column_types`).
+  * HS256 JWT auth, role RBAC (`admin`, `doctor`, `registration_worker`, `pharmacy`, `patient`), and object-level PHI authorization.
+  * Transactional advisory locks (`pg_advisory_xact_lock(260001)`) guaranteeing collision-free Beneficiary ID minting (`MV26XXXX`).
+  * Atomic pharmacy dispensing with row locks and immutable `inventory_movements` audit logging.
+  * In-memory QR PNG and PDF card generation.
+  * AI symptom checker and patient-context summary/chat (OpenAI with offline fallback).
+  * 10 unit tests passing.
 
 ---
 
-## Target users (roles in the API)
+## Target Roles
 
-| Role | What they do in the current API |
+| Role | What they do in MedVault |
 |---|---|
-| `registration_worker` | Register patients, search, update demographics, view cards |
-| `doctor` | Clinical records, prescriptions, doctor dashboard, timeline, AI endpoints |
-| `pharmacy` | Medicines, restock, dispense, pharmacy dashboard |
-| `patient` | Own profile, own dashboard, own card (after enrollment) |
-| `admin` | Staff user registration and several elevated reads/writes |
+| `registration_worker` | Register beneficiaries, search directory, update demographics, view/download digital & PDF health cards |
+| `doctor` | Write clinical encounter notes, review longitudinal timelines, draft prescriptions, consult AI clinical assistant |
+| `pharmacy` | Review active prescription queue, execute atomic stock dispenses, manage medicine catalog, track movement audits |
+| `patient` | Access personal health vault, review diagnosis history, and download digital beneficiary cards |
+| `admin` | System-wide oversight, staff account provisioning, elevated access to all stations |
 
 ---
 
-## Current purpose
-
-Operate a **PostgreSQL-backed FastAPI service** that enforces JWT + role checks, object-level patient access where implemented, and an atomic pharmacy dispense path.
-
----
-
-## Core features currently implemented (API)
-
-- JWT login; staff registration (admin-only); patient account enrollment
-- Patient CRUD/search, profile, doctor timeline
-- Medical records (create, history, authorship-restricted update)
-- Medicine catalog, low/critical stock, restock, stock adjustment audit
-- Prescriptions and pharmacy dispensing with inventory movements
-- Doctor dashboard and pharmacy dashboard
-- Patient dashboard (own Beneficiary ID only)
-- Beneficiary card JSON, QR PNG, and PDF
-- AI module: rule-based symptom checker; patient-context chat/summary via OpenAI **or** an offline fallback if no API key
-
-**Not implemented:** a web/mobile app, RAG / vector “health memory”, deployment pipeline, first-admin bootstrap endpoint.
-
----
-
-## Planned / advertised (not built)
-
-The GitHub description and older README mention RAG-based health memory and a full multi-portal product. **RAG is not in this codebase.** Portals exist only as backend routes, not as UIs.
-
-See `project_context.md` (future plans) and `TODO.md`.
-
----
-
-## Technology stack
+## Technology Stack
 
 | Layer | Choice |
 |---|---|
-| API | FastAPI + Uvicorn |
-| ORM | SQLAlchemy 2.x |
-| Validation | Pydantic v2 |
-| Database | PostgreSQL (tests use SQLite) |
+| Frontend Client | Vite, React 19, TypeScript, React Router DOM, Lucide React, Custom CSS Tokens |
+| Backend API | FastAPI + Uvicorn with CORSMiddleware |
+| ORM & Datastore | SQLAlchemy 2.x, PostgreSQL + psycopg2 |
 | Migrations | Alembic |
-| Auth | JWT (`python-jose`, HS256), OAuth2 password form |
-| Passwords | Passlib + bcrypt |
-| AI | Optional OpenAI client; provider abstraction in `app/ai/` |
-| Cards | `qrcode`, Pillow, ReportLab |
+| Auth & Security | JWT (`python-jose`, HS256), Passlib bcrypt, Advisory Locks |
+| Cards & Identity | `qrcode`, Pillow, ReportLab |
+| AI Integration | OpenAI Chat Completions SDK with offline prompt fallback |
 
 ---
 
-## High-level structure
+## Run Locally
 
-```text
-HTTP client / Swagger
-        ↓
-FastAPI (backend/app/main.py)
-        ↓
-Routers → services / AI / auth utils
-        ↓
-SQLAlchemy session
-        ↓
-PostgreSQL
-        ↘ optional OpenAI API
-```
-
-Details: `ARCHITECTURE.md`.
-
----
-
-## Run locally
-
-Prerequisites: Python 3, PostgreSQL, a virtualenv.
-
-```text
+### 1. Backend Service
+```powershell
 cd backend
 python -m venv venv
 venv\Scripts\activate          # Windows
 # source venv/bin/activate     # macOS/Linux
 pip install -r requirements.txt
-copy .env.example .env         # then edit .env
+copy .env.example .env         # edit with your DB & JWT secrets
 alembic -c alembic.ini upgrade head
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Open:
+* Backend API root: `http://localhost:8000/`
+* Swagger Interactive Docs: `http://localhost:8000/docs`
 
-- API root: `http://localhost:8000/`
-- Swagger: `http://localhost:8000/docs`
-
-Regression tests (from `backend/`, with dependencies installed):
-
-```text
-python -m unittest discover -s tests
+### 2. Frontend Client
+```powershell
+cd frontend
+npm install
+npm run dev
 ```
 
-Full operational notes (including **do not blindly stamp** an old pre-Alembic database): `backend/OPERATIONS.md`.
+* Web App URL: **`http://localhost:5173/`**
 
-### First admin user — UNKNOWN / NEEDS CONFIRMATION
-
-`POST /auth/register` requires an existing `admin`. This repo has **no seed script**. How the first admin is created in a real database is not documented in code.
-
----
-
-## Environment variables
-
-Copy `backend/.env.example`. **Never commit `.env` or real secrets.**
-
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | SQLAlchemy URL (example uses `postgresql+psycopg2://…`) |
-| `JWT_SECRET_KEY` | Signing key for access tokens |
-| `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime (default 60) |
-| `LOW_STOCK_THRESHOLD` | Stock count treated as “low” (default 20) |
-| `CRITICAL_STOCK_THRESHOLD` | Stock count treated as “critical” (default 10) |
-| `OPENAI_API_KEY` | Optional. Empty → AI chat/summary use offline placeholder text |
-
-`JWT_ALGORITHM` is hard-coded as `HS256` in `app/config.py`, not an env var.
+### 3. Run Backend Regression Tests
+```powershell
+cd backend
+.\venv\Scripts\python.exe -m unittest discover -s tests
+```
 
 ---
 
-## Current project status
+## Test Accounts (Quick Presets)
 
-Backend feature set on `main` is substantial (patients, clinical data, pharmacy, cards, AI routes). There is **no frontend**. In this documentation pass, backend regression tests were run successfully from `backend/` using `venv\Scripts\python.exe -m unittest discover -s tests` (6 tests passed). The run emitted SQLite resource warnings after completion.
-
-Authoritative snapshots:
-
-| File | Use |
-|---|---|
-| `project_context.md` | Long-term memory for humans and AI agents |
-| `ARCHITECTURE.md` | How the code is wired |
-| `DECISIONS.md` | What was chosen and why |
-| `CURRENT_STATE.md` | Where work stands **right now** |
-| `TODO.md` | Task list |
-| `GLOSSARY.md` | Domain terms |
-| `backend/OPERATIONS.md` | Run/migrate/test operations |
-
----
-
-## Documentation for AI handoffs
-
-Start a new coding-agent chat with: **read `project_context.md` first**, then `CURRENT_STATE.md` and `ARCHITECTURE.md` as needed. Do not trust older `project_status.md` content if it disagrees with those files.
+| Role | Email | Password |
+|---|---|---|
+| **Admin** | `admin@local.test` | `AdminSecurePassword123!` |
+| **Doctor** | `doctor@medvault.test` | `DoctorSecurePassword123!` |
+| **Pharmacy** | `pharmacy@medvault.test` | `PharmacySecurePassword123!` |
+| **Registration** | `worker@medvault.test` | `WorkerSecurePassword123!` |

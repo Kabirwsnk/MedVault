@@ -63,7 +63,7 @@ def search_patients(
     name: str = Query(..., min_length=1),
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["doctor", "registration_worker"])
+        require_role([ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_ADMIN])
     ),
 ):
     patients = (
@@ -90,7 +90,7 @@ def create_patient(
     patient: PatientCreate,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(["registration_worker"])
+        require_role([ROLE_REGISTRATION_WORKER, ROLE_ADMIN])
     ),
 ):
     
@@ -473,8 +473,9 @@ def update_patient(
     db: Session = Depends(get_db),
     current_user=Depends(
         require_role([
-            "doctor",
-            "registration_worker",
+            ROLE_DOCTOR,
+            ROLE_REGISTRATION_WORKER,
+            ROLE_ADMIN,
         ])
     ),
 ):

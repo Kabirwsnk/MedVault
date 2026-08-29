@@ -1,19 +1,6 @@
-# MedVault Current Status
+# Superseded
 
-Completed:
-- JWT authentication
-- Role based access
-- Patient login
-- Doctor login
-- Pharmacy login
-- Medical records
-- Prescriptions
-- Pharmacy dashboard
-- Patient dashboard
+This filename is kept so old links do not silently vanish.
 
-Remaining:
-- Patient prescription view
-- Inventory improvements
-- Testing
-- Documentation
-- Deployment
+**Use `CURRENT_STATE.md` as the live status file.**  
+Do not treat any previous checklist in git history for this path as accurate (it listed patient dashboard as done but also “patient prescription view remaining,” and omitted cards/AI/inventory that now exist).

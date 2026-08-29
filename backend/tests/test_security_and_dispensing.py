@@ -101,6 +101,17 @@ class SecurityAndDispensingTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["diagnosis"], "Updated")
 
+    def test_medical_record_profile_route_is_resolved(self):
+        client = TestClient(app)
+        doctor_headers = {"Authorization": "Bearer " + create_access_token({"sub": self.doctor.email, "role": "doctor"})}
+
+        response = client.get("/medical-records/profile/MV260001", headers=doctor_headers)
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["beneficiary_id"], "MV260001")
+        self.assertIn("medical_records", payload)
+
     def test_ai_router_endpoints(self):
         client = TestClient(app)
         doctor_headers = {"Authorization": "Bearer " + create_access_token({"sub": self.doctor.email, "role": "doctor"})}

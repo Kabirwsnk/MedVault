@@ -1,16 +1,16 @@
+import os
+import sys
 from logging.config import fileConfig
+
+# Add backend directory to sys.path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.config import DATABASE_URL
 from app.database import Base
-from app.models.inventory_movement import InventoryMovement  # noqa: F401
-from app.models.medical_record import MedicalRecord  # noqa: F401
-from app.models.medicine import Medicine  # noqa: F401
-from app.models.patient import Patient  # noqa: F401
-from app.models.prescription import Prescription  # noqa: F401
-from app.models.user import User  # noqa: F401
+import app.models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", DATABASE_URL)

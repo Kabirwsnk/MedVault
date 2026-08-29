@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import CORS_ORIGINS
 from app.database import Base, engine
 
 from app.models.patient import Patient
@@ -7,31 +9,31 @@ from app.models.user import User
 
 from app.routers.patient import router as patient_router
 from app.routers.auth import router as auth_router
-
 from app.routers.users import router as user_router
-
 from app.routers.medical_record import router as medical_record_router
-
 from app.routers.dashboard import router as dashboard_router
 
 from app.models.medicine import Medicine
-
 from app.routers.medicine import router as medicine_router
 
 from app.models.prescription import Prescription
 from app.models.inventory_movement import InventoryMovement
-
 from app.routers.prescription import router as prescription_router
 
 from app.routers.pharmacy import router as pharmacy_router
-
 from app.routers.ai import router as ai_router
-
-from app.routers.pharmacy_dashboard import (router as pharmacy_dashboard_router)
-
+from app.routers.pharmacy_dashboard import router as pharmacy_dashboard_router
 from app.routers.patient_dashboard import router as patient_dashboard_router
 
-app = FastAPI()
+app = FastAPI(title="MedVault AI", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(patient_router)
 app.include_router(auth_router)
