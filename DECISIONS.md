@@ -15,7 +15,7 @@ Dates: from git history on `main` where known. Authors/context otherwise UNKNOWN
 **Status:** Accepted  
 **Type:** EXPLICIT DECISION
 
-**Decision:** Built a standalone Single Page Application in `/frontend` using Vite, React 19, TypeScript, React Router DOM, and custom Vanilla CSS design tokens (cyber-medical dark theme).
+**Decision:** Built a standalone Single Page Application in `/frontend` using Vite, React 19, TypeScript, React Router DOM, and custom Vanilla CSS design tokens. The visual language is a restrained clinical workstation rather than a marketing dashboard.
 
 **Why:** MedVault advertised portals (Doctor, Pharmacy, Registration Worker, Patient, Admin) but only exposed Swagger docs.
 
@@ -118,3 +118,30 @@ Dates: from git history on `main` where known. Authors/context otherwise UNKNOWN
 **Type:** EXPLICIT
 
 **Decision:** `AI_PROVIDER = "openai"`; model `gpt-4.1-mini`; if no key or client fail, return placeholder text. Symptom checker stays rule-based.
+
+## Decision: Async database sessions
+
+**Status:** Accepted  
+**Type:** CURRENT IMPLEMENTATION CHOICE
+
+**Decision:** Runtime API routes use SQLAlchemy `AsyncSession` with `asyncpg` and configurable pooling. Alembic and bootstrap tooling retain a synchronous engine where that integration is simpler.
+
+**Why:** Database I/O should not block FastAPI workers, while the migration boundary remains straightforward and testable.
+
+## Decision: Controlled offline support
+
+**Status:** Accepted  
+**Type:** EXPLICIT
+
+**Decision:** Cache the frontend shell and allow IndexedDB clinical drafts and retry-safe encounter synchronization. Beneficiary IDs, enrollment, dispensing, and inventory changes remain server-authoritative.
+
+**Why:** Staff can continue documenting during brief outages without allowing offline clients to create conflicting identity or stock state.
+
+## Decision: Clinical workstation UI
+
+**Status:** Accepted  
+**Type:** EXPLICIT
+
+**Decision:** Use a neutral, compact, operational interface inspired by government and hospital software rather than a dark AI-dashboard aesthetic.
+
+**Why:** Repeated clinical workflows prioritize scanning, clarity, predictable controls, and low visual distraction.

@@ -32,8 +32,8 @@ API roles (`app/utils/roles.py`, DB check constraint): `admin`, `doctor`, `regis
 
 ### Current scope (implemented)
 
-* **Frontend SPA (`/frontend`):** Vite + React 19 + TypeScript single-page app with cyber-medical dark theme tokens, global AuthContext, role guards, dual-sided digital Beneficiary Cards (with PDF export and QR token display), Beneficiary Intake Form (Aadhaar validation, live age/BMI calculators), and Beneficiary Search Directory with live demographic editor (`PUT /patients/{id}`).
-* **Backend API (`/backend`):** FastAPI app with configured `CORSMiddleware`, PostgreSQL datastore, Alembic migrations, JWT authentication, advisory lock Beneficiary ID minting (`260001`), atomic pharmacy dispensing with row locks, inventory movement audit logs, and in-memory QR/PDF generation.
+* **Frontend SPA (`/frontend`):** Vite + React 19 + TypeScript single-page app with a neutral clinical workstation UI, global AuthContext, role guards, dual-sided digital Beneficiary Cards, Beneficiary Intake Form, search directory, connection health indicator, service-worker shell, and IndexedDB clinical drafts.
+* **Backend API (`/backend`):** Async FastAPI application with configured `CORSMiddleware`, PostgreSQL datastore, Alembic migrations through `0004_idempotency_records`, JWT authentication, advisory lock Beneficiary ID minting (`260001`), atomic pharmacy dispensing with row locks, inventory movement audit logs, health checks, rate limiting, and idempotent encounter replay.
 
 ### Technology stack
 

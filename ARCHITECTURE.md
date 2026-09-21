@@ -1,8 +1,8 @@
 # MedVault architecture (as implemented)
-
-MedVault consists of a **FastAPI backend** and a **Vite + React 19 single-page frontend application**.
-
-```text
+                                                  │
+                                                  ▼
+                                          Async SQLAlchemy sessions    OpenAI Chat Completions
+                                          connection pool               (only if OPENAI_API_KEY set)
        React 19 SPA (/frontend on port 5173)
        AuthContext (JWT in localStorage) + Typed Fetch Client
                          │
@@ -52,9 +52,10 @@ MedVault consists of a **FastAPI backend** and a **Vite + React 19 single-page f
 
 - **Path:** `/frontend`
 - **Tooling:** Vite, TypeScript, React 19, React Router DOM, Lucide React.
-- **Design System:** Custom CSS design tokens in `src/index.css` (cyber-medical dark theme, glassmorphism, responsive grid utilities).
+- **Design System:** Custom CSS design tokens in `src/index.css` (neutral clinical workstation palette, compact panels, responsive utilities).
 - **State & Auth:** `AuthContext.tsx` handles token persistence, user profile caching from `GET /users/me`, and role-based route guarding via `ProtectedRoute.tsx`.
-- **API Client:** `src/api/client.ts` centralizes API calls with automatic Bearer token injection and error message parsing.
+- **API Client:** `src/api/client.ts` centralizes Bearer token injection, timeout/retry policy, idempotency keys, health checks, and error parsing.
+- **Offline:** `public/sw.js` caches the application shell; `src/offlineStore.ts` stores clinical drafts in IndexedDB and synchronizes pending drafts after reconnect.
 
 ---
 
@@ -80,8 +81,8 @@ Five roles: `admin`, `doctor`, `registration_worker`, `pharmacy`, `patient`.
 
 ## Database
 
-Engine: `create_engine(DATABASE_URL, pool_pre_ping=True)`.  
-Migrations: `backend/migrations/versions/` (Alembic stamped to `0002_fix_patient_column_types`).
+Engine: synchronous migration engine plus async runtime engine with configurable pool settings.  
+Migrations: `backend/migrations/versions/` (current head `0004_idempotency_records`).
 
 ```text
 users 1──0..1 patients (patients.user_id unique, SET NULL on user delete)
@@ -93,6 +94,7 @@ users 1──* prescriptions.dispensed_by_user_id
 prescriptions 1──0..1 inventory_movements (unique prescription_id)
 medicines 1──* inventory_movements
 users 1──* inventory_movements.performed_by_user_id
+idempotency_records stores replayable responses for supported retry-safe writes
 ```
 
 ---

@@ -2,9 +2,9 @@
 
 **Question this file answers:** where is MedVault **right now**?
 
-Last git commit on `main` (workspace): `9b1f03f` — *Chunk 1A: beneficiary ID generation and configuration fixes*.  
-Remote: `origin/main` up to date.  
-Untracked: `backend.zip` (not application source).
+Last local commits: `b36a320` UI redesign, `090c8b2` offline drafts and retry-safe sync.  
+Remote: local `main` contains commits not yet pushed to `origin/main`.  
+Ignored local files include `backend/.env`, virtual environments, build output, and archives.
 
 ---
 
@@ -14,9 +14,10 @@ Code exists for the following:
 
 - **Frontend Application (`/frontend`):**
   - Modern Single Page Application (Vite + React 19 + TypeScript + Vanilla CSS design tokens).
-  - Cyber-medical dark theme with glassmorphism, responsive telemetry cards, and Lucide icons.
+  - Neutral clinical workstation UI with restrained tables, forms, status labels, and Lucide icons.
   - Typed API client (`src/api/client.ts`) with automatic JWT injection, error mapping, and 401 interceptor.
   - Global `AuthContext` with login, logout, role helpers, and test presets.
+  - Online/offline/server health indicator, service-worker shell, and IndexedDB clinical drafts.
   - Dual-sided interactive Beneficiary Card modal (`BeneficiaryCardModal.tsx`) with scannable QR token and one-click PDF card downloads.
   - Beneficiary Registration Station (`RegistrationPortal.tsx`) with auto-spaced 12-digit Aadhaar formatting, live Age calculation, and BMI classification.
   - Searchable Beneficiary Directory with demographic editor modal (`EditPatientModal.tsx` & `PUT /patients/{id}`).
@@ -39,16 +40,18 @@ Code exists for the following:
   - Patient dashboard (own ID).
   - Beneficiary card JSON, QR PNG, PDF generation.
   - AI symptom checker, chat, summary (OpenAI or offline fallback text).
+  - Login rate limiting with configurable memory or Redis storage.
+  - Database health endpoint, safe API timeouts/retries, and idempotent encounter replay.
   - Admin bootstrap CLI + docs (`backend/app/manage.py`, `backend/OPERATIONS.md`).
-  - Full regression test suite passing (10 tests).
+  - Full regression test suite passing (14 tests).
 
 ---
 
 ### In Progress / Up Next
 
-- Phase 1.3: Deep Doctor Clinical Portal (Multi-tab encounter writer, structured prescription line-item builder with medicine search dropdown + dosage calculation, interactive longitudinal timeline).
-- Phase 1.4: Deep Pharmacy Portal (Batch dispensing, stock adjustment logging, movement history filters).
-- Phase 1.5: Deep Patient Health Wallet (Medication reminders, full diagnostic history).
+- Structured prescription line-item builder with medicine strengths, brands, alternatives, and repeat-previous-prescription support.
+- Pharmacy batch workflows and richer movement filters.
+- Broader offline drafting and conflict-resolution UX.
 
 ---
 
@@ -58,13 +61,13 @@ Code exists for the following:
 - Docker / production deploy scripts
 - General audit log (beyond `inventory_movements`)
 - Refresh tokens / OAuth social login
-- Unique DB constraint on `medicine_name` (app-level check only)
+- Full production observability and load testing
 
 ---
 
 ### Current Architecture Status
 
-**Stable, integrated frontend + backend.** Database schema reconciled and Alembic stamped to `head` (`0002_fix_patient_column_types`). Backend CORS is fully wired to the Vite frontend client.
+**Stable, integrated frontend + backend.** Async API/session migration is complete and Alembic head is `0004_idempotency_records`. Backend CORS is wired to the Vite frontend client. Offline support is limited to app-shell loading and clinical drafts; final identity and inventory transactions remain server-authoritative.
 
 ---
 
@@ -84,8 +87,9 @@ Code exists for the following:
 
 ### Last Successfully Tested
 
-- **Frontend build:** `cd frontend; npm run build` &rarr; `✓ 1849 modules transformed, dist/ created cleanly in 3.32s with 0 errors`.
-- **Backend test suite:** `cd backend; .\venv\Scripts\python.exe -m unittest discover -s tests` &rarr; `Ran 10 tests — OK`.
+- **Frontend build:** `cd frontend; npm run build` &rarr; production build passes.
+- **Backend test suite:** `cd backend; .\venv\Scripts\python.exe -m unittest discover -s tests` &rarr; `Ran 14 tests — OK`.
+- **Health check:** `GET http://127.0.0.1:8000/health` &rarr; database available.
 - **Live Auth Integration:** `POST http://127.0.0.1:8000/auth/login` &rarr; `HTTP 200 OK` with valid JWT token.
 
 ---
@@ -96,5 +100,5 @@ Code exists for the following:
 - Beneficiary ID generation + lock `260001`
 - `require_patient_access` and role CHECK
 - Env-required `DATABASE_URL` / `JWT_SECRET_KEY`
-- Alembic chain; patient DOB vs blood_group types
+- Alembic chain; patient DOB vs blood_group types; idempotency migration
 - Route ordering on patients/medicines/prescriptions

@@ -26,3 +26,10 @@ Short definitions as used **in this codebase**.
 | **Object-level access** | `require_patient_access`: staff role set, or admin, or the linked patient user. |
 | **Advisory lock** | PostgreSQL `pg_advisory_xact_lock(260001)` during ID minting. |
 | **Deprecated pharmacy dispense** | `POST /pharmacy/dispense/{id}` — same as `/prescriptions/{id}/dispense`. |
+| **Async session** | SQLAlchemy `AsyncSession` used by runtime API routes for non-blocking database I/O. |
+| **Idempotency key** | Client-provided `Idempotency-Key` used to replay a supported write response instead of creating a duplicate. |
+| **Offline draft** | Local IndexedDB clinical draft that is not treated as a server-confirmed medical record. |
+| **Pending sync** | Offline draft queued for submission after connectivity returns. |
+| **Conflict** | A queued draft that the server rejected with a conflict and requires staff review. |
+| **Server-authoritative** | An operation that must be confirmed by PostgreSQL-backed API state, such as dispensing or Beneficiary ID creation. |
+| **Health endpoint** | Unauthenticated `GET /health` check reporting API database availability. |
