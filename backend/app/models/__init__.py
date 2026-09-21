@@ -4,6 +4,7 @@ from .medical_record import MedicalRecord
 from .medicine import Medicine
 from .prescription import Prescription
 from .inventory_movement import InventoryMovement
+from .idempotency_record import IdempotencyRecord
 
 __all__ = [
     "User",
@@ -12,4 +13,5 @@ __all__ = [
     "Medicine",
     "Prescription",
     "InventoryMovement",
+    "IdempotencyRecord",
 ]

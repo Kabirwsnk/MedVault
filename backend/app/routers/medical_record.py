@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -6,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.dependencies import get_async_db
 from app.models.patient import Patient
 from app.models.medical_record import MedicalRecord
+from app.models.idempotency_record import IdempotencyRecord
 from app.schemas.medical_record import (
     MedicalRecordCreate,
     MedicalRecordResponse,
@@ -30,9 +32,18 @@ router = APIRouter(
 async def add_medical_record(
     beneficiary_id: str,
     record: MedicalRecordCreate,
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(require_role([ROLE_DOCTOR])),
 ):
+    if idempotency_key:
+        cached_result = await db.execute(
+            select(IdempotencyRecord).where(IdempotencyRecord.key == idempotency_key)
+        )
+        cached = cached_result.scalar_one_or_none()
+        if cached:
+            return JSONResponse(status_code=cached.status_code, content=cached.response_body)
+
     result = await db.execute(
         select(Patient).where(Patient.beneficiary_id == beneficiary_id)
     )
@@ -56,7 +67,21 @@ async def add_medical_record(
     await db.commit()
     await db.refresh(new_record)
 
-    return new_record
+    response_body = {
+        "id": new_record.id,
+        "diagnosis": new_record.diagnosis,
+        "prescription": new_record.prescription,
+        "notes": new_record.notes,
+    }
+    if idempotency_key:
+        db.add(IdempotencyRecord(
+            key=idempotency_key,
+            status_code=200,
+            response_body=response_body,
+        ))
+        await db.commit()
+
+    return response_body
 
 
 # ------------------------------------------

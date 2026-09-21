@@ -31,6 +31,7 @@ from app.routers.pharmacy import router as pharmacy_router
 from app.routers.ai import router as ai_router
 from app.routers.pharmacy_dashboard import router as pharmacy_dashboard_router
 from app.routers.patient_dashboard import router as patient_dashboard_router
+from app.routers.health import router as health_router
 
 app = FastAPI(title="MedVault AI", version="1.0.0")
 app.state.limiter = limiter
@@ -69,6 +70,7 @@ app.include_router(pharmacy_router)
 app.include_router(ai_router)
 app.include_router(pharmacy_dashboard_router)
 app.include_router(patient_dashboard_router)
+app.include_router(health_router)
 
 @app.get("/")
 async def home():

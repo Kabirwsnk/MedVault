@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from app.database import AsyncSessionLocal, Base, SessionLocal, engine
 from app.main import app
 from app.models.inventory_movement import InventoryMovement
+from app.models.idempotency_record import IdempotencyRecord
 from app.models.medical_record import MedicalRecord
 from app.models.medicine import Medicine
 from app.models.patient import Patient
@@ -30,7 +31,7 @@ class SecurityAndDispensingTests(unittest.TestCase):
 
     def setUp(self):
         db = SessionLocal()
-        for model in (InventoryMovement, Prescription, MedicalRecord, Medicine, Patient, User):
+        for model in (IdempotencyRecord, InventoryMovement, Prescription, MedicalRecord, Medicine, Patient, User):
             db.query(model).delete()
         doctor = User(email="doctor@test.local", password=hash_password("Secure password 123"), role="doctor")
         other_doctor = User(email="other_doc@test.local", password=hash_password("Secure password 123"), role="doctor")
@@ -82,6 +83,27 @@ class SecurityAndDispensingTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["phone_number"], "1234567893")
+
+    def test_health_endpoint_reports_database(self):
+        response = TestClient(app).get("/health")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["database"], "available")
+
+    def test_duplicate_medical_record_key_replays_original_record(self):
+        client = TestClient(app)
+        doctor_headers = {
+            "Authorization": "Bearer " + create_access_token({"sub": self.doctor.email, "role": "doctor"}),
+            "Idempotency-Key": "encounter-retry-001",
+        }
+        payload = {"diagnosis": "Stable condition", "prescription": "Continue treatment", "notes": "Follow up"}
+
+        first = client.post("/medical-records/MV260001", json=payload, headers=doctor_headers)
+        second = client.post("/medical-records/MV260001", json=payload, headers=doctor_headers)
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.json()["id"], second.json()["id"])
+        self.assertEqual(self.db.query(MedicalRecord).filter(MedicalRecord.diagnosis == "Stable condition").count(), 1)
 
     def test_dispensing_creates_exactly_one_inventory_movement(self):
         patient = self.db.query(Patient).first()

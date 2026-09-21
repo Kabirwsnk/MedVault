@@ -180,6 +180,32 @@ rate limiting when running multiple API workers.
 - The next production steps are containerized deployment, centralized audit logs,
   refresh-token rotation, metrics, tracing, backups, and load testing.
 
+## Online and Offline Behavior
+
+MedVault is online-first with controlled offline support. The frontend displays
+browser and server health separately, caches clinical drafts in IndexedDB, and
+queues failed encounter submissions for retry when connectivity returns.
+
+Offline-safe actions:
+
+- Open the application shell.
+- Load the cached frontend shell through the service worker.
+- Continue editing an encounter and prescription draft.
+- Recover drafts after a refresh.
+- Synchronize pending drafts after the server returns.
+
+Server-authoritative actions:
+
+- Beneficiary ID generation and patient enrollment.
+- Final clinical record creation outside the supported idempotent workflow.
+- Prescription dispensing and stock changes.
+- Medicine substitutions and account provisioning.
+
+The server stores idempotency responses for encounter creation, so a retry with
+the same `Idempotency-Key` replays the original result instead of creating a
+duplicate record. This prevents offline recovery from turning into duplicate
+clinical data.
+
 ## Security Notes
 
 - Patient enrollment is protected by default and requires an admin or registration worker.

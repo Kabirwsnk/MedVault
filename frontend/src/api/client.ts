@@ -14,6 +14,8 @@ import {
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const REQUEST_TIMEOUT_MS = 10000;
+const MAX_SAFE_RETRIES = 2;
 
 class ApiError extends Error {
   status: number;
@@ -27,9 +29,19 @@ class ApiError extends Error {
   }
 }
 
+function canRetry(method: string, endpoint: string, hasIdempotencyKey: boolean): boolean {
+  return ['GET', 'HEAD', 'OPTIONS'].includes(method)
+    || (method === 'POST' && endpoint.startsWith('/medical-records/') && hasIdempotencyKey);
+}
+
+function createIdempotencyKey(): string {
+  return crypto.randomUUID();
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('medvault_token');
   const headers = new Headers(options.headers || {});
+  const method = (options.method || 'GET').toUpperCase();
 
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -39,11 +51,36 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Content-Type', 'application/json');
   }
 
+  if (['POST', 'PUT', 'PATCH'].includes(method) && !headers.has('Idempotency-Key')) {
+    headers.set('Idempotency-Key', createIdempotencyKey());
+  }
+
   const url = `${API_BASE}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
+  const shouldRetry = canRetry(method, endpoint, headers.has('Idempotency-Key'));
+  let response: Response | undefined;
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= (shouldRetry ? MAX_SAFE_RETRIES : 0); attempt += 1) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      response = await fetch(url, { ...options, headers, signal: controller.signal });
+      if (response.ok || !shouldRetry || ![408, 429, 500, 502, 503, 504].includes(response.status)) {
+        break;
+      }
+    } catch (error) {
+      lastError = error;
+      if (!shouldRetry || attempt === MAX_SAFE_RETRIES) {
+        throw new ApiError('The server could not be reached. Your work was not confirmed as saved.', 0, error);
+      }
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
+  if (!response) {
+    throw new ApiError('The server could not be reached. Your work was not confirmed as saved.', 0, lastError);
+  }
 
   if (response.status === 401) {
     // If unauthorized and we're not already on login, we can trigger event
@@ -76,6 +113,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
+  async health(): Promise<{ status: string; database: string }> {
+    return request('/health');
+  },
   // Auth endpoints
   async login(username: string, password: string): Promise<TokenResponse> {
     const formData = new URLSearchParams();
@@ -158,9 +198,10 @@ export const api = {
   },
 
   // Medical Records
-  async createMedicalRecord(beneficiary_id: string, data: { diagnosis: string; prescription: string; notes?: string }): Promise<MedicalRecord> {
+  async createMedicalRecord(beneficiary_id: string, data: { diagnosis: string; prescription: string; notes?: string }, idempotencyKey?: string): Promise<MedicalRecord> {
     return request<MedicalRecord>(`/medical-records/${beneficiary_id}`, {
       method: 'POST',
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
       body: JSON.stringify(data),
     });
   },
