@@ -1,98 +1,204 @@
 # MedVault
 
-**Your Health. Secured Forever.**
+MedVault is a role-protected healthcare platform for managing beneficiary identity,
+clinical encounters, prescriptions, pharmacy inventory, and patient health history.
+It combines a FastAPI/PostgreSQL backend with a React single-page application and
+uses transaction-level controls for identity allocation and medicine dispensing.
 
-MedVault is a **full-stack healthcare platform and clinical identity system**. It stores patient identity and clinical data around a unique, collision-free **Beneficiary ID**, and exposes role-protected stations for registration workers, doctors, pharmacy staff, patients, and system administrators.
+> **Project status:** Resume-ready local/demo system. The core workflows are
+> implemented and tested; production deployment still requires infrastructure,
+> load testing, and operational monitoring.
 
-Repository: [https://github.com/Kabirwsnk/MedVault.git](https://github.com/Kabirwsnk/MedVault.git)
+## What It Demonstrates
 
----
+- JWT authentication with bcrypt password hashing and role-based access control.
+- Object-level PHI authorization so patients can access only their own records.
+- Collision-safe Beneficiary ID generation using a PostgreSQL advisory lock.
+- Async FastAPI endpoints backed by SQLAlchemy async sessions and connection pooling.
+- Atomic prescription dispensing with row locks and immutable inventory movements.
+- Pydantic request validation, database constraints, rate limiting, and safe errors.
+- React portals for registration, doctors, pharmacy staff, patients, and admins.
 
-## Core Features Implemented
+## Roles and Core Flows
 
-* **Modern Web SPA (`/frontend`):**
-  * Built with Vite + React 19 + TypeScript with a dark cyber-medical theme and Lucide icons.
-  * Role-protected stations with JWT authentication, test presets, and live backend connection checks.
-  * Interactive dual-sided digital Beneficiary Cards with holographic badges, QR tokens, and one-click PDF downloads.
-  * Beneficiary Registration Station with auto-formatted 12-digit Aadhaar input, live Age calculation, and BMI classification.
-  * Searchable Beneficiary Directory with live demographic editor (`PUT /patients/{id}`).
-  * Dedicated portals for Doctors (encounters & timeline), Pharmacy (queue & atomic dispense), Patients (health vault & card), AI Clinical Assistant, and Admin Provisioning.
-* **FastAPI Backend (`/backend`):**
-  * PostgreSQL datastore with Alembic migrations (`0002_fix_patient_column_types`).
-  * HS256 JWT auth, role RBAC (`admin`, `doctor`, `registration_worker`, `pharmacy`, `patient`), and object-level PHI authorization.
-  * Transactional advisory locks (`pg_advisory_xact_lock(260001)`) guaranteeing collision-free Beneficiary ID minting (`MV26XXXX`).
-  * Atomic pharmacy dispensing with row locks and immutable `inventory_movements` audit logging.
-  * In-memory QR PNG and PDF card generation.
-  * AI symptom checker and patient-context summary/chat (OpenAI with offline fallback).
-  * 10 unit tests passing.
+| Role | Responsibilities |
+| --- | --- |
+| `admin` | Provision staff and oversee all operational areas |
+| `registration_worker` | Register beneficiaries, update demographics, activate patient accounts |
+| `doctor` | Create encounters, prescriptions, timelines, and clinical AI requests |
+| `pharmacy` | Manage medicines, restock inventory, and dispense prescriptions |
+| `patient` | View their own clinical history, prescriptions, and beneficiary card |
 
----
+```text
+Registration worker
+    -> creates Patient + unique Beneficiary ID
+Doctor
+    -> creates MedicalRecord + Prescription
+Pharmacy
+    -> locks Prescription and Medicine rows
+    -> decrements stock + writes InventoryMovement atomically
+Patient
+    -> views only the linked health history
+```
 
-## Target Roles
+## Architecture
 
-| Role | What they do in MedVault |
-|---|---|
-| `registration_worker` | Register beneficiaries, search directory, update demographics, view/download digital & PDF health cards |
-| `doctor` | Write clinical encounter notes, review longitudinal timelines, draft prescriptions, consult AI clinical assistant |
-| `pharmacy` | Review active prescription queue, execute atomic stock dispenses, manage medicine catalog, track movement audits |
-| `patient` | Access personal health vault, review diagnosis history, and download digital beneficiary cards |
-| `admin` | System-wide oversight, staff account provisioning, elevated access to all stations |
+```text
+                         +----------------------+
+                         | React 19 + TypeScript|
+                         | Vite SPA             |
+                         +----------+-----------+
+                                    |
+                              Bearer JWT
+                                    |
+                         +----------v-----------+
+                         | FastAPI routers      |
+                         | validation + RBAC    |
+                         +----------+-----------+
+                                    |
+                         +----------v-----------+
+                         | Async services       |
+                         | transactions + locks |
+                         +----------+-----------+
+                                    |
+                         +----------v-----------+
+                         | PostgreSQL           |
+                         | SQLAlchemy + Alembic |
+                         +----------------------+
+```
 
----
+### Backend boundaries
 
-## Technology Stack
+- `routers/` exposes modular HTTP route groups.
+- `schemas/` defines validated request and response contracts.
+- `models/` defines relational entities and database constraints.
+- `services/` owns multi-step business operations such as dispensing.
+- `utils/` contains authentication, JWT, role, and authorization helpers.
+- `ai/` builds patient context and supports OpenAI or offline fallback behavior.
+- `migrations/` contains the Alembic schema history.
 
-| Layer | Choice |
-|---|---|
-| Frontend Client | Vite, React 19, TypeScript, React Router DOM, Lucide React, Custom CSS Tokens |
-| Backend API | FastAPI + Uvicorn with CORSMiddleware |
-| ORM & Datastore | SQLAlchemy 2.x, PostgreSQL + psycopg2 |
-| Migrations | Alembic |
-| Auth & Security | JWT (`python-jose`, HS256), Passlib bcrypt, Advisory Locks |
-| Cards & Identity | `qrcode`, Pillow, ReportLab |
-| AI Integration | OpenAI Chat Completions SDK with offline prompt fallback |
+### Concurrency design
 
----
+- Beneficiary ID allocation uses PostgreSQL advisory lock `260001`.
+- Dispensing locks both the prescription and medicine rows before changing stock.
+- `InventoryMovement.prescription_id` is unique, preventing duplicate dispense logs.
+- Medicine names have a database-level unique constraint.
+- Pool settings are environment-driven and should be sized with worker count and
+  PostgreSQL connection capacity.
+
+## Tech Stack
+
+| Area | Technology |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, React Router, Lucide React |
+| API | FastAPI, Uvicorn, Pydantic |
+| Persistence | PostgreSQL, SQLAlchemy 2.x, `asyncpg`, Alembic |
+| Authentication | JWT HS256, bcrypt, FastAPI dependencies |
+| Abuse protection | SlowAPI; Redis-backed storage supported for multi-worker deployments |
+| Documents | QR Code, Pillow, ReportLab |
+| AI | OpenAI SDK with offline fallback |
+| Tests | Python `unittest`, FastAPI `TestClient` |
 
 ## Run Locally
 
-### 1. Backend Service
+### Prerequisites
+
+- Python 3.11+ and PostgreSQL.
+- Node.js 20+ and npm.
+- A database created for MedVault.
+
+### Backend
+
 ```powershell
 cd backend
 python -m venv venv
-venv\Scripts\activate          # Windows
-# source venv/bin/activate     # macOS/Linux
+venv\\Scripts\\Activate.ps1
 pip install -r requirements.txt
-copy .env.example .env         # edit with your DB & JWT secrets
-alembic -c alembic.ini upgrade head
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+Copy-Item .env.example .env
 ```
 
-* Backend API root: `http://localhost:8000/`
-* Swagger Interactive Docs: `http://localhost:8000/docs`
+Edit `backend/.env` with a real database URL and a long random JWT secret.
+Never commit that file. Then run migrations and start the API:
 
-### 2. Frontend Client
+```powershell
+alembic -c alembic.ini upgrade head
+python -m app.manage create-admin --ensure-tables --email admin@example.com --password "UseARealPasswordHere"
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+- API root: http://127.0.0.1:8000/
+- Swagger: http://127.0.0.1:8000/docs
+
+### Frontend
+
 ```powershell
 cd frontend
 npm install
-npm run dev
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
-* Web App URL: **`http://localhost:5173/`**
+Open http://127.0.0.1:5173/ in a browser. The frontend uses
+`VITE_API_URL` when provided and otherwise defaults to `http://localhost:8000`.
 
-### 3. Run Backend Regression Tests
+### Tests and build
+
 ```powershell
 cd backend
-.\venv\Scripts\python.exe -m unittest discover -s tests
+.\\venv\\Scripts\\python.exe -m unittest discover -s tests
+
+cd ..\\frontend
+npm run build
 ```
 
----
+Current validation baseline: 12 backend tests pass and the frontend production
+build completes successfully.
 
-## Test Accounts (Quick Presets)
+## Configuration and Secrets
 
-| Role | Email | Password |
-|---|---|---|
-| **Admin** | `admin@local.test` | `AdminSecurePassword123!` |
-| **Doctor** | `doctor@medvault.test` | `DoctorSecurePassword123!` |
-| **Pharmacy** | `pharmacy@medvault.test` | `PharmacySecurePassword123!` |
-| **Registration** | `worker@medvault.test` | `WorkerSecurePassword123!` |
+Only `backend/.env.example` belongs in version control. Local `.env` files,
+virtual environments, build output, and archives are ignored by Git. Required
+production values include:
+
+- `DATABASE_URL`
+- `JWT_SECRET_KEY`
+- `PROTECT_PATIENT_ENROLLMENT=true`
+- `CORS_ORIGINS`
+
+Useful operational settings include database pool values, stock thresholds,
+`OPENAI_API_KEY`, and `RATE_LIMIT_STORAGE_URI`. Use a shared Redis URI for
+rate limiting when running multiple API workers.
+
+## Scalability Considerations
+
+- Async endpoints and `AsyncSession` prevent database I/O from blocking the
+  FastAPI event loop.
+- SQLAlchemy pool sizing is configurable through `DB_POOL_SIZE`,
+  `DB_MAX_OVERFLOW`, `DB_POOL_TIMEOUT`, and `DB_POOL_RECYCLE`.
+- Stateless JWT authentication allows multiple API workers behind a load balancer.
+- PostgreSQL constraints and locks protect correctness under concurrent writes.
+- SlowAPI limits repeated login attempts; Redis provides shared limiter state.
+- The next production steps are containerized deployment, centralized audit logs,
+  refresh-token rotation, metrics, tracing, backups, and load testing.
+
+## Security Notes
+
+- Patient enrollment is protected by default and requires an admin or registration worker.
+- Passwords are hashed with bcrypt and are never returned by API responses.
+- Patient routes apply both role checks and object-level ownership checks.
+- The AI feature is an assistant, not a diagnostic authority; offline fallback is
+  available when an API key is not configured.
+- Demo credentials, if seeded locally, are for development only and must not be
+  reused in a deployed environment.
+
+## Development History
+
+The repository history is intentionally incremental, with separate commits for
+the API foundation, authentication, patient/clinical workflows, pharmacy
+dispensing, AI architecture, frontend SPA, and infrastructure/documentation.
+This makes design evolution and debugging decisions reviewable instead of hiding
+everything in one initial commit.
+
+## License
+
+No open-source license has been declared yet. Add a license before accepting
+external contributions or distributing the project publicly.

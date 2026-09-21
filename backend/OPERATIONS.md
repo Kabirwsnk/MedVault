@@ -7,6 +7,16 @@
 3. Start with `uvicorn app.main:app --host 0.0.0.0 --port 8000`.
 4. Run regression checks with `python -m unittest discover -s tests`.
 
+The database pool defaults are controlled by `DB_POOL_SIZE`, `DB_MAX_OVERFLOW`,
+`DB_POOL_TIMEOUT`, and `DB_POOL_RECYCLE`. Increase them only after considering
+the number of application workers and the PostgreSQL server's connection limit;
+pool settings should scale with expected concurrent user load, not independently
+of the database capacity.
+
+`RATE_LIMIT_STORAGE_URI` defaults to `memory://` for local development. Use a
+shared Redis URI in a multi-worker deployment so login limits apply across all
+API processes rather than separately inside each process.
+
 The pre-Alembic development database needs a backup and a one-time reconciliation
 before it can be stamped. Do not stamp it blindly: its current tables lack fields
 introduced by the baseline, including clinical authorship and inventory movements.
@@ -35,13 +45,12 @@ Do NOT check the password into source control. For automated provisioning you
 may prefer to call the underlying function from an initialization script or
 CI job rather than embedding secrets in migrations.
 
-## Optional: Protect patient enrollment
+## Patient enrollment protection
 
-By default `POST /auth/patient-enrollment` is publicly available to allow
-patients to bind their account to an existing Beneficiary ID. To disable
-public enrollment (for stricter security) set the environment variable
-`PROTECT_PATIENT_ENROLLMENT=true`. When set, the enrollment endpoint will be
-rejecting requests with HTTP 403 and an operator must create patient accounts
-via admin/staff workflows.
+By default `POST /auth/patient-enrollment` requires an authenticated admin or
+registration worker because enrollment changes account ownership for a patient.
+For local-only demos that need the legacy public flow, explicitly set
+`PROTECT_PATIENT_ENROLLMENT=false`. Never use that opt-out in a shared or
+production deployment.
 
 
