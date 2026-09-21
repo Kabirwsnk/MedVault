@@ -206,7 +206,7 @@ export const PharmacyPortal: React.FC = () => {
                   return (
                     <tr key={med.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
                       <td style={{ padding: '0.75rem' }} className="font-mono">#{med.id}</td>
-                      <td style={{ padding: '0.75rem', fontWeight: 600, color: '#f8fafc' }}>{med.medicine_name}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>{med.medicine_name}</td>
                       <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>{med.manufacturer}</td>
                       <td style={{ padding: '0.75rem' }}>{med.unit}</td>
                       <td style={{ padding: '0.75rem' }}>
@@ -266,7 +266,7 @@ export const PharmacyPortal: React.FC = () => {
                       {mov.quantity > 0 ? `+${mov.quantity}` : mov.quantity}
                     </td>
                     <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
-                      {mov.stock_before} &rarr; <strong style={{ color: '#f8fafc' }}>{mov.stock_after}</strong>
+                      {mov.stock_before} &rarr; <strong style={{ color: 'var(--text-main)' }}>{mov.stock_after}</strong>
                     </td>
                     <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                       {new Date(mov.created_at).toLocaleString()}

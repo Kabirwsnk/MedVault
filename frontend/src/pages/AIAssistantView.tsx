@@ -105,7 +105,7 @@ export const AIAssistantView: React.FC = () => {
           </form>
 
           {symptomResult && (
-            <div className="glass-panel animate-fade-in" style={{ padding: '1.25rem', marginTop: '1.5rem', background: 'rgba(15, 23, 42, 0.9)' }}>
+            <div className="glass-panel animate-fade-in" style={{ padding: '1.25rem', marginTop: '1.5rem', background: 'var(--bg-secondary)' }}>
               <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
                 Evaluated Conditions:
               </div>
@@ -116,7 +116,7 @@ export const AIAssistantView: React.FC = () => {
                   </span>
                 ))}
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#e2e8f0', lineHeight: '1.5' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-main)', lineHeight: '1.5' }}>
                 <strong>Clinical Advice:</strong> {symptomResult.advice}
               </div>
             </div>
@@ -181,7 +181,7 @@ export const AIAssistantView: React.FC = () => {
               <div style={{ fontSize: '0.8125rem', color: '#c4b5fd', fontWeight: 700, marginBottom: '0.5rem' }}>
                 AI Synthesized Response:
               </div>
-              <div style={{ fontSize: '0.875rem', color: '#f8fafc', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-main)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                 {chatAnswer}
               </div>
             </div>

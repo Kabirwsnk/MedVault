@@ -48,7 +48,7 @@ export const LoginPage: React.FC = () => {
           width: '100%',
           maxWidth: '920px',
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(380px, 100%), 1fr))',
           overflow: 'hidden',
           padding: 0,
         }}
@@ -57,7 +57,7 @@ export const LoginPage: React.FC = () => {
         <div
           style={{
             padding: '3rem 2.5rem',
-            background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(15, 23, 42, 0.95) 100%)',
+            background: '#e7f0f7',
             borderRight: '1px solid var(--border-subtle)',
             display: 'flex',
             flexDirection: 'column',
@@ -71,14 +71,14 @@ export const LoginPage: React.FC = () => {
                   width: '44px',
                   height: '44px',
                   borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+                  background: 'var(--accent-primary)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   boxShadow: '0 0 20px rgba(6, 182, 212, 0.4)',
                 }}
               >
-                <Shield size={26} color="#0a0f1d" strokeWidth={2.5} />
+                <Shield size={26} color="#ffffff" strokeWidth={2.5} />
               </div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
                 MedVault<span style={{ color: 'var(--accent-primary)' }}>.AI</span>
@@ -90,15 +90,15 @@ export const LoginPage: React.FC = () => {
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--text-main)' }}>
                 <CheckCircle2 size={18} color="var(--accent-primary)" />
                 <span>Deterministic Beneficiary ID generation (`MV26XXXX`)</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--text-main)' }}>
                 <CheckCircle2 size={18} color="var(--accent-secondary)" />
                 <span>Atomic inventory movement & audit ledger</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: '#e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.875rem', color: 'var(--text-main)' }}>
                 <CheckCircle2 size={18} color="#a855f7" />
                 <span>Object-level PHI authorization & role guard</span>
               </div>

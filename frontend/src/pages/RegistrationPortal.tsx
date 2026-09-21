@@ -355,7 +355,7 @@ export const RegistrationPortal: React.FC = () => {
                 style={{
                   padding: '1rem',
                   borderRadius: 'var(--radius-md)',
-                  background: 'rgba(15, 23, 42, 0.6)',
+                  background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
@@ -374,7 +374,7 @@ export const RegistrationPortal: React.FC = () => {
                 style={{
                   padding: '1rem',
                   borderRadius: 'var(--radius-md)',
-                  background: 'rgba(15, 23, 42, 0.6)',
+                  background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-subtle)',
                 }}
               >
@@ -471,7 +471,7 @@ export const RegistrationPortal: React.FC = () => {
                       <td style={{ padding: '0.75rem', fontWeight: 700 }} className="font-mono">
                         <span style={{ color: 'var(--accent-primary)' }}>{p.beneficiary_id}</span>
                       </td>
-                      <td style={{ padding: '0.75rem', fontWeight: 600, color: '#f8fafc' }}>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}> 
                         {p.full_name}
                       </td>
                       <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>

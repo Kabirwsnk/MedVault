@@ -47,7 +47,7 @@ export const DashboardOverview: React.FC = () => {
         style={{
           padding: '2rem 2.5rem',
           marginBottom: '2rem',
-          background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(15, 23, 42, 0.9) 100%)',
+          background: '#e7f0f7',
           border: '1px solid var(--border-glow)',
           display: 'flex',
           justifyContent: 'space-between',

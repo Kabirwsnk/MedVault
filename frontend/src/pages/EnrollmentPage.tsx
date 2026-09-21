@@ -83,13 +83,13 @@ export const EnrollmentPage: React.FC = () => {
               width: '40px',
               height: '40px',
               borderRadius: '10px',
-              background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+              background: 'var(--accent-primary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <UserCheck size={22} color="#0a0f1d" />
+            <UserCheck size={22} color="#ffffff" />
           </div>
           <div>
             <h2 style={{ fontSize: '1.375rem' }}>Patient Portal Enrollment</h2>

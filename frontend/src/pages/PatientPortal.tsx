@@ -87,7 +87,7 @@ export const PatientPortal: React.FC = () => {
             <div
               style={{
                 borderRadius: 'var(--radius-lg)',
-                background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                background: 'var(--bg-secondary)',
                 border: '1px solid var(--border-glow)',
                 padding: '1.5rem',
                 boxShadow: 'var(--shadow-glow-cyan)',
@@ -145,12 +145,12 @@ export const PatientPortal: React.FC = () => {
                     style={{
                       padding: '1.25rem',
                       borderRadius: 'var(--radius-md)',
-                      background: 'rgba(15, 23, 42, 0.6)',
+                      background: 'var(--bg-secondary)',
                       border: '1px solid var(--border-subtle)',
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <strong style={{ color: '#f8fafc' }}>{rec.diagnosis}</strong>
+                      <strong style={{ color: 'var(--text-main)' }}>{rec.diagnosis}</strong>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                         {new Date(rec.created_at).toLocaleDateString()}
                       </span>

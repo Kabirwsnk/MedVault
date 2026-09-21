@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Patient } from '../types';
 import { Stethoscope, Search, Plus, FileText, CheckCircle2, AlertCircle, History, Sparkles, Bot } from 'lucide-react';
+import { ClinicalDraft, deleteClinicalDraft, getClinicalDraft, saveClinicalDraft, syncPendingClinicalDrafts } from '../offlineStore';
 
 export const DoctorPortal: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -15,9 +16,57 @@ export const DoctorPortal: React.FC = () => {
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [isSubmittingRecord, setIsSubmittingRecord] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [draftState, setDraftState] = useState<'saved' | 'draft' | 'pending' | 'conflict'>('saved');
 
   useEffect(() => {
     loadPatients();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPatient) return;
+    const draftId = `encounter:${selectedPatient.beneficiary_id}`;
+    getClinicalDraft(draftId).then((draft) => {
+      if (!draft) return;
+      setDiagnosis(draft.diagnosis);
+      setPrescriptionText(draft.prescription);
+      setNotes(draft.notes);
+      setDraftState(draft.state);
+    }).catch(() => undefined);
+  }, [selectedPatient?.beneficiary_id]);
+
+  useEffect(() => {
+    if (!selectedPatient || (!diagnosis && !prescriptionText && !notes)) return;
+    const timer = window.setTimeout(() => {
+      saveClinicalDraft({
+        id: `encounter:${selectedPatient.beneficiary_id}`,
+        beneficiaryId: selectedPatient.beneficiary_id,
+        diagnosis,
+        prescription: prescriptionText,
+        notes,
+        state: 'draft',
+        updatedAt: new Date().toISOString(),
+        idempotencyKey: crypto.randomUUID(),
+      }).then(() => setDraftState('draft')).catch(() => undefined);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [selectedPatient?.beneficiary_id, diagnosis, prescriptionText, notes]);
+
+  useEffect(() => {
+    const syncDrafts = async () => {
+      if (!navigator.onLine) return;
+      const result = await syncPendingClinicalDrafts(async (draft: ClinicalDraft) => {
+        await api.createMedicalRecord(draft.beneficiaryId, {
+          diagnosis: draft.diagnosis,
+          prescription: draft.prescription,
+          notes: draft.notes || undefined,
+        }, draft.idempotencyKey);
+      });
+      if (result.conflicts > 0) setDraftState('conflict');
+      else if (result.synced > 0) setDraftState('saved');
+    };
+    syncDrafts().catch(() => undefined);
+    window.addEventListener('online', syncDrafts);
+    return () => window.removeEventListener('online', syncDrafts);
   }, []);
 
   const loadPatients = async () => {
@@ -65,11 +114,14 @@ export const DoctorPortal: React.FC = () => {
     setFeedback(null);
 
     try {
+      const idempotencyKey = crypto.randomUUID();
       await api.createMedicalRecord(selectedPatient.beneficiary_id, {
         diagnosis,
         prescription: prescriptionText,
         notes: notes || undefined,
-      });
+      }, idempotencyKey);
+      await deleteClinicalDraft(`encounter:${selectedPatient.beneficiary_id}`);
+      setDraftState('saved');
       setFeedback({ type: 'success', message: 'Medical encounter recorded successfully!' });
       setDiagnosis('');
       setPrescriptionText('');
@@ -78,6 +130,21 @@ export const DoctorPortal: React.FC = () => {
       const timeline = await api.getPatientTimeline(selectedPatient.beneficiary_id);
       setPatientTimeline(timeline);
     } catch (err: any) {
+      if (!err?.status || err.status === 0) {
+        await saveClinicalDraft({
+          id: `encounter:${selectedPatient.beneficiary_id}`,
+          beneficiaryId: selectedPatient.beneficiary_id,
+          diagnosis,
+          prescription: prescriptionText,
+          notes,
+          state: 'pending',
+          updatedAt: new Date().toISOString(),
+          idempotencyKey: crypto.randomUUID(),
+        });
+        setDraftState('pending');
+        setFeedback({ type: 'error', message: 'Server unavailable. Encounter saved locally and queued for synchronization.' });
+        return;
+      }
       setFeedback({ type: 'error', message: err.message || 'Failed to save medical record' });
     } finally {
       setIsSubmittingRecord(false);
@@ -165,13 +232,13 @@ export const DoctorPortal: React.FC = () => {
                     style={{
                       padding: '0.75rem 1rem',
                       borderRadius: 'var(--radius-md)',
-                      background: isSelected ? 'rgba(6, 182, 212, 0.15)' : 'rgba(15, 23, 42, 0.6)',
+                      background: isSelected ? '#e7f0f7' : 'var(--bg-secondary)',
                       border: isSelected ? '1px solid var(--accent-primary)' : '1px solid var(--border-subtle)',
                       cursor: 'pointer',
                       transition: 'all var(--transition-fast)',
                     }}
                   >
-                    <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: isSelected ? '#f8fafc' : '#cbd5e1' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: isSelected ? 'var(--accent-primary)' : 'var(--text-main)' }}>
                       {p.full_name}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem', fontSize: '0.75rem' }}>
@@ -200,10 +267,10 @@ export const DoctorPortal: React.FC = () => {
                   <span className="badge badge-cyan font-mono">{selectedPatient.beneficiary_id}</span>
                 </div>
                 <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                  <span>Phone: <strong style={{ color: '#e2e8f0' }}>{selectedPatient.phone_number}</strong></span>
-                  <span>DOB: <strong style={{ color: '#e2e8f0' }}>{selectedPatient.date_of_birth || 'N/A'}</strong></span>
-                  <span>Gender: <strong style={{ color: '#e2e8f0' }}>{selectedPatient.gender || 'N/A'}</strong></span>
-                  <span>Blood: <strong style={{ color: '#e2e8f0' }}>{selectedPatient.blood_group || 'N/A'}</strong></span>
+                  <span>Phone: <strong style={{ color: 'var(--text-main)' }}>{selectedPatient.phone_number}</strong></span>
+                  <span>DOB: <strong style={{ color: 'var(--text-main)' }}>{selectedPatient.date_of_birth || 'N/A'}</strong></span>
+                  <span>Gender: <strong style={{ color: 'var(--text-main)' }}>{selectedPatient.gender || 'N/A'}</strong></span>
+                  <span>Blood: <strong style={{ color: 'var(--text-main)' }}>{selectedPatient.blood_group || 'N/A'}</strong></span>
                 </div>
               </div>
 
@@ -225,7 +292,7 @@ export const DoctorPortal: React.FC = () => {
                   <Bot size={18} />
                   <strong style={{ fontSize: '0.9375rem' }}>MedVault AI Patient Brief</strong>
                 </div>
-                <div style={{ fontSize: '0.875rem', color: '#e2e8f0', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-main)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                   {aiSummary}
                 </div>
               </div>
@@ -274,15 +341,21 @@ export const DoctorPortal: React.FC = () => {
                   />
                 </div>
 
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
                 <button
                   type="submit"
                   disabled={isSubmittingRecord}
                   className="btn btn-primary"
-                  style={{ marginTop: '0.5rem' }}
                 >
                   <FileText size={16} />
                   <span>{isSubmittingRecord ? 'Saving Encounter...' : 'Submit Encounter Record'}</span>
                 </button>
+                <span style={{ fontSize: '0.75rem', color: draftState === 'conflict' ? 'var(--accent-danger)' : 'var(--text-muted)' }}>
+                  {draftState === 'draft' && 'Draft saved locally'}
+                  {draftState === 'pending' && 'Pending synchronization'}
+                  {draftState === 'conflict' && 'Sync conflict requires review'}
+                </span>
+                </div>
               </form>
             </div>
 
@@ -305,13 +378,13 @@ export const DoctorPortal: React.FC = () => {
                       style={{
                         padding: '1.25rem',
                         borderRadius: 'var(--radius-md)',
-                        background: 'rgba(15, 23, 42, 0.6)',
+                        background: 'var(--bg-secondary)',
                         border: '1px solid var(--border-subtle)',
                         borderLeft: '4px solid var(--accent-primary)',
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <strong style={{ color: '#f8fafc', fontSize: '1rem' }}>{rec.diagnosis}</strong>
+                        <strong style={{ color: 'var(--text-main)', fontSize: '1rem' }}>{rec.diagnosis}</strong>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>
                           {new Date(rec.created_at).toLocaleDateString()}
                         </span>

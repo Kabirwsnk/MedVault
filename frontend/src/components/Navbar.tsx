@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Shield, LogOut, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ConnectionStatus } from './ConnectionStatus';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -28,8 +29,7 @@ export const Navbar: React.FC = () => {
       style={{
         height: '64px',
         borderBottom: '1px solid var(--border-subtle)',
-        background: 'rgba(10, 15, 29, 0.85)',
-        backdropFilter: 'blur(16px)',
+        background: 'var(--bg-secondary)',
         position: 'sticky',
         top: 0,
         zIndex: 40,
@@ -46,19 +46,19 @@ export const Navbar: React.FC = () => {
             width: '38px',
             height: '38px',
             borderRadius: '10px',
-            background: 'linear-gradient(135deg, #06b6d4 0%, #10b981 100%)',
+            background: 'var(--accent-primary)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(6, 182, 212, 0.35)',
+            boxShadow: 'var(--shadow-sm)',
           }}
         >
           <Shield size={22} color="#0a0f1d" strokeWidth={2.5} />
         </div>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '1.2rem', fontWeight: 800, letterSpacing: '-0.03em', color: '#f8fafc' }}>
-              MedVault<span style={{ color: 'var(--accent-primary)' }}>.AI</span>
+            <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
+              MedVault <span style={{ color: 'var(--accent-primary)' }}>AI</span>
             </span>
             <span
               style={{
@@ -67,9 +67,9 @@ export const Navbar: React.FC = () => {
                 textTransform: 'uppercase',
                 padding: '0.15rem 0.4rem',
                 borderRadius: '4px',
-                background: 'rgba(6, 182, 212, 0.15)',
-                color: '#67e8f9',
-                border: '1px solid rgba(6, 182, 212, 0.3)',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border-subtle)',
               }}
             >
               Live API
@@ -79,20 +79,7 @@ export const Navbar: React.FC = () => {
       </Link>
 
       {/* Center Status / Features */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-          <span
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: 'var(--accent-secondary)',
-              boxShadow: '0 0 8px var(--accent-secondary)',
-            }}
-          />
-          <span>FastAPI Engine</span>
-        </div>
-      </div>
+      <ConnectionStatus />
 
       {/* User Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
