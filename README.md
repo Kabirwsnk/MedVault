@@ -150,7 +150,7 @@ cd ..\\frontend
 npm run build
 ```
 
-Current validation baseline: 12 backend tests pass and the frontend production
+Current validation baseline: 14 backend tests pass and the frontend production
 build completes successfully.
 
 ## Configuration and Secrets
