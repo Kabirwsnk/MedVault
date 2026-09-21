@@ -42,10 +42,12 @@ if "postgresql+asyncpg://" in ASYNC_DATABASE_URL:
     parsed = urlparse(ASYNC_DATABASE_URL)
     query_params = parse_qs(parsed.query)
 
-    # Extract and remove sslmode/ssl query parameter which causes issues in asyncpg
-    ssl_mode = query_params.pop("sslmode", [None])[0] or query_params.pop("ssl", [None])[0]
-    new_query = urlencode(query_params, doseq=True)
-    ASYNC_DATABASE_URL = urlunparse(parsed._replace(query=new_query))
+    # Check if SSL was requested in query or host is remote
+    ssl_mode = query_params.get("sslmode", [None])[0] or query_params.get("ssl", [None])[0]
+
+    # Strip ALL query parameters (such as channel_binding, sslmode, gssencmode, etc.)
+    # because asyncpg does not accept libpq query string parameters
+    ASYNC_DATABASE_URL = urlunparse(parsed._replace(query=""))
 
     is_remote = parsed.hostname and not (
         parsed.hostname in ("localhost", "127.0.0.1")
