@@ -7,7 +7,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from app.config import CORS_ORIGINS
+from app.config import CORS_ORIGINS, CORS_ORIGIN_REGEX
 from app.database import Base, engine
 from app.rate_limit import limiter
 
@@ -54,6 +54,7 @@ async def handle_database_error(request: Request, exc: SQLAlchemyError):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

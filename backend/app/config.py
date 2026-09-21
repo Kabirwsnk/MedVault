@@ -16,11 +16,14 @@ def required_setting(name: str) -> str:
 
 
 DATABASE_URL = required_setting("DATABASE_URL")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 JWT_SECRET_KEY = required_setting("JWT_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 PROTECT_PATIENT_ENROLLMENT = os.getenv("PROTECT_PATIENT_ENROLLMENT", "true").lower() == "true"
-RATE_LIMIT_STORAGE_URI = os.getenv("RATE_LIMIT_STORAGE_URI", "memory://")
+RATE_LIMIT_STORAGE_URI = os.getenv("RATE_LIMIT_STORAGE_URI") or os.getenv("REDIS_URL") or "memory://"
 DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
 DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
 DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
@@ -35,4 +38,8 @@ CORS_ORIGINS = [
     ).split(",")
     if origin.strip()
 ]
+CORS_ORIGIN_REGEX = os.getenv(
+    "CORS_ORIGIN_REGEX",
+    r"^https://.*(\.vercel\.app|\.netlify\.app)$",
+)
 

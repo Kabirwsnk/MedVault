@@ -33,6 +33,9 @@ elif ASYNC_DATABASE_URL.startswith("postgresql://"):
 elif ASYNC_DATABASE_URL.startswith("sqlite:///"):
     ASYNC_DATABASE_URL = ASYNC_DATABASE_URL.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
 
+if "sslmode=" in ASYNC_DATABASE_URL:
+    ASYNC_DATABASE_URL = ASYNC_DATABASE_URL.replace("sslmode=require", "ssl=require").replace("sslmode=prefer", "ssl=prefer")
+
 # Async sessions let FastAPI yield the event loop while PostgreSQL handles I/O.
 async_engine = create_async_engine(
     ASYNC_DATABASE_URL,

@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: medvault-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "bash start.sh"
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: JWT_ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "120"
+      - key: PROTECT_PATIENT_ENROLLMENT
+        value: "true"
+      - key: RATE_LIMIT_STORAGE_URI
+        value: "memory://"
+      - key: CORS_ORIGINS
+        value: "http://localhost:5173,http://localhost:3000"
+      - key: CORS_ORIGIN_REGEX
+        value: "^https://.*(\\.vercel\\.app|\\.netlify\\.app)$"
