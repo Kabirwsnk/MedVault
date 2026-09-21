@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Shield, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 
@@ -231,10 +231,7 @@ export const LoginPage: React.FC = () => {
               color: 'var(--text-muted)',
             }}
           >
-            <span>Are you a registered patient? </span>
-            <Link to="/enroll" style={{ color: 'var(--accent-primary)', fontWeight: 600, textDecoration: 'none' }}>
-              Enroll your Beneficiary ID
-            </Link>
+            <span>Patient account activation is completed by clinic registration staff.</span>
           </div>
         </div>
       </div>

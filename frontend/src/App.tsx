@@ -36,7 +36,6 @@ export const App: React.FC = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/enroll" element={<EnrollmentPage />} />
 
           {/* Protected Clinical Stations */}
           <Route element={<ProtectedRoute />}>
@@ -60,6 +59,7 @@ export const App: React.FC = () => {
               <Route element={<ProtectedRoute allowedRoles={['registration_worker', 'admin']} />}>
                 <Route path="/registration" element={<RegistrationPortal />} />
                 <Route path="/registration/cards" element={<RegistrationPortal />} />
+                <Route path="/registration/enroll" element={<EnrollmentPage />} />
               </Route>
 
               {/* Patient Health Vault */}

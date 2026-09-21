@@ -62,7 +62,7 @@ export const EnrollmentPage: React.FC = () => {
         }}
       >
         <Link
-          to="/login"
+          to="/registration"
           style={{
             display: 'inline-flex',
             alignItems: 'center',

@@ -74,9 +74,9 @@ export const PatientPortal: React.FC = () => {
           <Shield size={36} color="var(--accent-warning)" style={{ margin: '0 auto 1rem auto' }} />
           <h3 style={{ marginBottom: '0.5rem' }}>Account Not Linked</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>{error}</p>
-          <a href="/enroll" className="btn btn-primary">
-            Link Beneficiary ID
-          </a>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+            Contact clinic registration staff to link your Beneficiary ID.
+          </p>
         </div>
       ) : dashboard ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem' }}>

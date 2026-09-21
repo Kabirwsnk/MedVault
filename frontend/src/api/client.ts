@@ -190,8 +190,9 @@ export const api = {
   },
 
   async restockMedicine(id: number, quantity: number): Promise<Medicine> {
-    return request<Medicine>(`/medicines/${id}/restock?quantity=${quantity}`, {
+    return request<Medicine>(`/medicines/${id}/restock`, {
       method: 'PUT',
+      body: JSON.stringify({ quantity }),
     });
   },
 

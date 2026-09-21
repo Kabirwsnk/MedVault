@@ -149,6 +149,10 @@ export const Sidebar: React.FC = () => {
               <CreditCard size={18} color="#fbbf24" />
               <span>Beneficiary Cards</span>
             </NavLink>
+            <NavLink to="/registration/enroll" style={getLinkStyle}>
+              <UserPlus size={18} color="#22d3ee" />
+              <span>Patient Account</span>
+            </NavLink>
           </nav>
         </div>
       )}
