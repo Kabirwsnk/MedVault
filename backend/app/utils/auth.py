@@ -3,9 +3,12 @@ from fastapi.security import OAuth2PasswordBearer
 
 from jose import jwt, JWTError
 
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.database import SessionLocal
+from app.dependencies import get_async_db
 from app.models.user import User
 from app.utils.jwt import SECRET_KEY, ALGORITHM
 
@@ -25,9 +28,9 @@ def get_db():
         db.close()
 
 
-def get_current_user(
+async def get_current_user(
     token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+    db: AsyncSession = Depends(get_async_db)
 ):
 
     credentials_exception = HTTPException(
@@ -52,11 +55,10 @@ def get_current_user(
 
         raise credentials_exception
 
-    user = (
-        db.query(User)
-        .filter(User.email == email)
-        .first()
+    result = await db.execute(
+        select(User).options(selectinload(User.patient)).where(User.email == email)
     )
+    user = result.scalar_one_or_none()
 
     if user is None:
         raise credentials_exception
@@ -70,7 +72,7 @@ def get_current_user(
     return user
 
 
-def get_optional_current_user(request: Request, db: Session = Depends(get_db)):
+async def get_optional_current_user(request: Request, db: AsyncSession = Depends(get_async_db)):
     """Return the authenticated user when a valid Authorization header is
     present, otherwise return None. Does not raise HTTP errors for missing or
     invalid tokens (useful for endpoints that allow optional auth).
@@ -94,7 +96,10 @@ def get_optional_current_user(request: Request, db: Session = Depends(get_db)):
     if not email:
         return None
 
-    user = db.query(User).filter(User.email == email).first()
+    result = await db.execute(
+        select(User).options(selectinload(User.patient)).where(User.email == email)
+    )
+    user = result.scalar_one_or_none()
     if not user or not user.is_active:
         return None
 

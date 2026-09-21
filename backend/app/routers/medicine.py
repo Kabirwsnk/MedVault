@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.config import CRITICAL_STOCK_THRESHOLD, LOW_STOCK_THRESHOLD
-from app.dependencies import get_db
+from app.dependencies import get_async_db
 from app.models.inventory_movement import InventoryMovement
 from app.models.medicine import Medicine
 from app.schemas.medicine import (
@@ -33,20 +35,17 @@ router = APIRouter(
     response_model=MedicineResponse,
     status_code=201,
 )
-def add_medicine(
+async def add_medicine(
     medicine: MedicineCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_PHARMACY, ROLE_ADMIN])
     ),
 ):
-    existing = (
-        db.query(Medicine)
-        .filter(
-            Medicine.medicine_name == medicine.medicine_name
-        )
-        .first()
+    result = await db.execute(
+        select(Medicine).where(Medicine.medicine_name == medicine.medicine_name)
     )
+    existing = result.scalar_one_or_none()
 
     if existing:
         raise HTTPException(
@@ -62,8 +61,12 @@ def add_medicine(
     )
 
     db.add(new_medicine)
-    db.commit()
-    db.refresh(new_medicine)
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Medicine already exists.")
+    await db.refresh(new_medicine)
 
     return new_medicine
 
@@ -75,13 +78,14 @@ def add_medicine(
     "/",
     response_model=list[MedicineResponse]
 )
-def get_all_medicines(
-    db: Session = Depends(get_db),
+async def get_all_medicines(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_DOCTOR, ROLE_PHARMACY, ROLE_ADMIN])
     ),
 ):
-    return db.query(Medicine).all()
+    result = await db.execute(select(Medicine))
+    return result.scalars().all()
 
 
 # ----------------------------------------
@@ -91,19 +95,16 @@ def get_all_medicines(
     "/low-stock",
     response_model=list[MedicineResponse]
 )
-def low_stock_medicines(
-    db: Session = Depends(get_db),
+async def low_stock_medicines(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_DOCTOR, ROLE_PHARMACY, ROLE_ADMIN])
     ),
 ):
-    medicines = (
-        db.query(Medicine)
-        .filter(
-            Medicine.stock < LOW_STOCK_THRESHOLD
-        )
-        .all()
+    result = await db.execute(
+        select(Medicine).where(Medicine.stock < LOW_STOCK_THRESHOLD)
     )
+    medicines = result.scalars().all()
 
     return medicines
 
@@ -115,19 +116,16 @@ def low_stock_medicines(
     "/critical-stock",
     response_model=list[MedicineResponse]
 )
-def critical_stock_medicines(
-    db: Session = Depends(get_db),
+async def critical_stock_medicines(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_PHARMACY, ROLE_ADMIN])
     ),
 ):
-    medicines = (
-        db.query(Medicine)
-        .filter(
-            Medicine.stock < CRITICAL_STOCK_THRESHOLD
-        )
-        .all()
+    result = await db.execute(
+        select(Medicine).where(Medicine.stock < CRITICAL_STOCK_THRESHOLD)
     )
+    medicines = result.scalars().all()
 
     return medicines
 
@@ -139,17 +137,16 @@ def critical_stock_medicines(
     "/movements/history",
     response_model=list[InventoryMovementResponse]
 )
-def inventory_movements_history(
-    db: Session = Depends(get_db),
+async def inventory_movements_history(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_PHARMACY, ROLE_DOCTOR, ROLE_ADMIN])
     ),
 ):
-    movements = (
-        db.query(InventoryMovement)
-        .order_by(InventoryMovement.created_at.desc())
-        .all()
+    result = await db.execute(
+        select(InventoryMovement).order_by(InventoryMovement.created_at.desc())
     )
+    movements = result.scalars().all()
     return movements
 
 
@@ -160,15 +157,18 @@ def inventory_movements_history(
     "/{medicine_id}/restock",
     response_model=MedicineResponse
 )
-def restock_medicine(
+async def restock_medicine(
     medicine_id: int,
     restock: MedicineRestock,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_PHARMACY, ROLE_ADMIN])
     ),
 ):
-    medicine = db.query(Medicine).filter(Medicine.id == medicine_id).with_for_update().first()
+    result = await db.execute(
+        select(Medicine).where(Medicine.id == medicine_id).with_for_update()
+    )
+    medicine = result.scalar_one_or_none()
 
     if not medicine:
         raise HTTPException(
@@ -187,8 +187,8 @@ def restock_medicine(
         stock_after=medicine.stock,
     ))
 
-    db.commit()
-    db.refresh(medicine)
+    await db.commit()
+    await db.refresh(medicine)
 
     return medicine
 
@@ -200,20 +200,15 @@ def restock_medicine(
     "/{medicine_id}",
     response_model=MedicineResponse
 )
-def get_medicine(
+async def get_medicine(
     medicine_id: int,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_DOCTOR, ROLE_PHARMACY, ROLE_ADMIN])
     ),
 ):
-    medicine = (
-        db.query(Medicine)
-        .filter(
-            Medicine.id == medicine_id
-        )
-        .first()
-    )
+    result = await db.execute(select(Medicine).where(Medicine.id == medicine_id))
+    medicine = result.scalar_one_or_none()
 
     if not medicine:
         raise HTTPException(
@@ -231,21 +226,16 @@ def get_medicine(
     "/{medicine_id}",
     response_model=MedicineResponse
 )
-def update_medicine(
+async def update_medicine(
     medicine_id: int,
     updated_data: MedicineUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_PHARMACY, ROLE_ADMIN])
     ),
 ):
-    medicine = (
-        db.query(Medicine)
-        .filter(
-            Medicine.id == medicine_id
-        )
-        .first()
-    )
+    result = await db.execute(select(Medicine).where(Medicine.id == medicine_id))
+    medicine = result.scalar_one_or_none()
 
     if not medicine:
         raise HTTPException(
@@ -269,7 +259,7 @@ def update_medicine(
             notes="Catalog stock update",
         ))
 
-    db.commit()
-    db.refresh(medicine)
+    await db.commit()
+    await db.refresh(medicine)
 
     return medicine

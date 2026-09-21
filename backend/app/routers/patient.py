@@ -2,10 +2,11 @@ from datetime import datetime
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import text
+from sqlalchemy import select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.dependencies import get_db
+from app.dependencies import get_async_db, get_db
 from app.models.patient import Patient
 from app.models.medical_record import MedicalRecord
 from app.models.prescription import Prescription
@@ -46,11 +47,12 @@ router = APIRouter(
 # ----------------------------------------------------------
 
 @router.get("/", response_model=list[PatientResponse])
-def get_all_patients(
-    db: Session = Depends(get_db),
+async def get_all_patients(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(require_role([ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_ADMIN])),
 ):
-    patients = db.query(Patient).all()
+    result = await db.execute(select(Patient))
+    patients = result.scalars().all()
 
     return patients
 
@@ -59,20 +61,17 @@ def get_all_patients(
     "/search",
     response_model=list[PatientSearchResponse],
 )
-def search_patients(
+async def search_patients(
     name: str = Query(..., min_length=1),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_ADMIN])
     ),
 ):
-    patients = (
-        db.query(Patient)
-        .filter(
-            Patient.full_name.ilike(f"%{name}%")
-        )
-        .all()
+    result = await db.execute(
+        select(Patient).where(Patient.full_name.ilike(f"%{name}%"))
     )
+    patients = result.scalars().all()
 
     return patients
 
@@ -86,9 +85,9 @@ def search_patients(
     "/",
     response_model=PatientResponse,
 )
-def create_patient(
+async def create_patient(
     patient: PatientCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_REGISTRATION_WORKER, ROLE_ADMIN])
     ),
@@ -96,24 +95,17 @@ def create_patient(
     
     current_year = datetime.now().strftime("%y")
 
-# Prevent two registration workers from generating
-# the same beneficiary ID at the same time.
-    db.execute(
-        text("SELECT pg_advisory_xact_lock(260001)")
-    )
+    # Serialize ID allocation in PostgreSQL so concurrent workers cannot mint duplicates.
+    if db.bind and db.bind.dialect.name == "postgresql":
+        await db.execute(text("SELECT pg_advisory_xact_lock(260001)"))
     
-    last_patient = (
-        db.query(Patient)
-        .filter(
-            Patient.beneficiary_id.like(
-                f"MV{current_year}%"
-            )
-        )
-        .order_by(
-            Patient.beneficiary_id.desc()
-        )
-        .first()
+    result = await db.execute(
+        select(Patient)
+        .where(Patient.beneficiary_id.like(f"MV{current_year}%"))
+        .order_by(Patient.beneficiary_id.desc())
+        .limit(1)
     )
+    last_patient = result.scalar_one_or_none()
     if last_patient:
         last_number = int(
             last_patient.beneficiary_id[-4:]
@@ -132,14 +124,10 @@ def create_patient(
         f"MV{current_year}{new_number:04d}"
     )
 
-    existing_patient = (
-        db.query(Patient)
-        .filter(
-            Patient.aadhar_number ==
-            patient.aadhar_number
-        )
-        .first()
+    result = await db.execute(
+        select(Patient).where(Patient.aadhar_number == patient.aadhar_number)
     )
+    existing_patient = result.scalar_one_or_none()
     if existing_patient:
         raise HTTPException(
             status_code=400,
@@ -162,9 +150,8 @@ def create_patient(
 
     db.add(new_patient)
 
-    db.commit()
-
-    db.refresh(new_patient)
+    await db.commit()
+    await db.refresh(new_patient)
 
     return new_patient
 
@@ -178,9 +165,9 @@ def create_patient(
     "/card/{beneficiary_id}",
     response_model=BeneficiaryCardResponse,
 )
-def beneficiary_card(
+async def beneficiary_card(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([
             ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_PATIENT, ROLE_ADMIN,
@@ -188,18 +175,14 @@ def beneficiary_card(
     ),
 ):
 
-    patient = (
-        db.query(Patient)
+    result = await db.execute(
+        select(Patient)
         .options(
-            joinedload(Patient.records).joinedload(
-                MedicalRecord.prescriptions
-            )
+            selectinload(Patient.records).selectinload(MedicalRecord.prescriptions)
         )
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+        .where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -234,20 +217,19 @@ def beneficiary_card(
 @router.get(
     "/card/{beneficiary_id}/qr",
 )
-def beneficiary_card_qr(
+async def beneficiary_card_qr(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([
             ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_PATIENT, ROLE_ADMIN,
         ])
     ),
 ):
-    patient = (
-        db.query(Patient)
-        .filter(Patient.beneficiary_id == beneficiary_id)
-        .first()
+    result = await db.execute(
+        select(Patient).where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -272,27 +254,23 @@ def beneficiary_card_qr(
 @router.get(
     "/card/{beneficiary_id}/pdf",
 )
-def beneficiary_card_pdf(
+async def beneficiary_card_pdf(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([
             ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_PATIENT, ROLE_ADMIN,
         ])
     ),
 ):
-    patient = (
-        db.query(Patient)
+    result = await db.execute(
+        select(Patient)
         .options(
-            joinedload(Patient.records).joinedload(
-                MedicalRecord.prescriptions
-            )
+            selectinload(Patient.records).selectinload(MedicalRecord.prescriptions)
         )
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+        .where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -322,9 +300,9 @@ def beneficiary_card_pdf(
     "/profile/{beneficiary_id}",
     response_model=PatientProfileResponse,
 )
-def get_patient_profile(
+async def get_patient_profile(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([
             ROLE_DOCTOR, ROLE_PATIENT, ROLE_ADMIN,
@@ -332,13 +310,12 @@ def get_patient_profile(
     ),
 ):
 
-    patient = (
-        db.query(Patient)
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+    result = await db.execute(
+        select(Patient)
+        .options(selectinload(Patient.records))
+        .where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -368,28 +345,24 @@ def get_patient_profile(
     "/timeline/{beneficiary_id}",
     response_model=PatientTimelineResponse,
 )
-def patient_timeline(
+async def patient_timeline(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role(["doctor"])
     ),
 ):
 
-    patient = (
-        db.query(Patient)
+    result = await db.execute(
+        select(Patient)
         .options(
-            joinedload(Patient.records)
-            .joinedload(
-                MedicalRecord.prescriptions
-            )
-            .joinedload(Prescription.medicine)
+            selectinload(Patient.records)
+            .selectinload(MedicalRecord.prescriptions)
+            .selectinload(Prescription.medicine)
         )
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+        .where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -439,19 +412,16 @@ def patient_timeline(
 # ----------------------------------------------------------
 
 @router.get("/{beneficiary_id}", response_model=PatientResponse)
-def get_patient(
+async def get_patient(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(require_role([ROLE_DOCTOR, ROLE_REGISTRATION_WORKER, ROLE_PATIENT, ROLE_ADMIN])),
 ):
 
-    patient = (
-        db.query(Patient)
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+    result = await db.execute(
+        select(Patient).where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
     if not patient:
         raise HTTPException(
             status_code=404,
@@ -467,10 +437,10 @@ def get_patient(
     "/{beneficiary_id}",
     response_model=PatientResponse,
 )
-def update_patient(
+async def update_patient(
     beneficiary_id: str,
     updated_data: PatientUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([
             ROLE_DOCTOR,
@@ -480,13 +450,10 @@ def update_patient(
     ),
 ):
 
-    patient = (
-        db.query(Patient)
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+    result = await db.execute(
+        select(Patient).where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -502,8 +469,7 @@ def update_patient(
     patient.weight_kg = updated_data.weight_kg
     patient.emergency_contact = updated_data.emergency_contact
 
-    db.commit()
-
-    db.refresh(patient)
+    await db.commit()
+    await db.refresh(patient)
 
     return patient

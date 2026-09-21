@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.dependencies import get_db
+from app.dependencies import get_async_db
 from app.models.patient import Patient
 from app.models.medical_record import MedicalRecord
 from app.schemas.medical_record import (
@@ -25,19 +27,16 @@ router = APIRouter(
     "/{beneficiary_id}",
     response_model=MedicalRecordResponse
 )
-def add_medical_record(
+async def add_medical_record(
     beneficiary_id: str,
     record: MedicalRecordCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(require_role([ROLE_DOCTOR])),
 ):
-    patient = (
-        db.query(Patient)
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+    result = await db.execute(
+        select(Patient).where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -54,8 +53,8 @@ def add_medical_record(
     )
 
     db.add(new_record)
-    db.commit()
-    db.refresh(new_record)
+    await db.commit()
+    await db.refresh(new_record)
 
     return new_record
 
@@ -67,19 +66,17 @@ def add_medical_record(
     "/profile/{beneficiary_id}",
     response_model=PatientProfileResponse
 )
-def get_patient_profile(
+async def get_patient_profile(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(require_role([ROLE_DOCTOR])),
 ):
-    patient = (
-        db.query(Patient)
-        .options(joinedload(Patient.records))
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+    result = await db.execute(
+        select(Patient)
+        .options(selectinload(Patient.records))
+        .where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -99,19 +96,17 @@ def get_patient_profile(
 # Get Complete Medical History
 # ------------------------------------------
 @router.get("/{beneficiary_id}")
-def get_medical_history(
+async def get_medical_history(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(require_role([ROLE_DOCTOR])),
 ):
-    patient = (
-        db.query(Patient)
-        .options(joinedload(Patient.records))
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+    result = await db.execute(
+        select(Patient)
+        .options(selectinload(Patient.records))
+        .where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(
@@ -133,21 +128,18 @@ def get_medical_history(
     "/{record_id}",
     response_model=MedicalRecordResponse
 )
-def update_medical_record(
+async def update_medical_record(
     record_id: int,
     updated_data: MedicalRecordUpdate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_DOCTOR, ROLE_ADMIN])
     ),
 ):
-    record = (
-        db.query(MedicalRecord)
-        .filter(
-            MedicalRecord.id == record_id
-        )
-        .first()
+    result = await db.execute(
+        select(MedicalRecord).where(MedicalRecord.id == record_id)
     )
+    record = result.scalar_one_or_none()
 
     if not record:
         raise HTTPException(
@@ -165,7 +157,8 @@ def update_medical_record(
     record.prescription = updated_data.prescription
     record.notes = updated_data.notes
 
-    db.commit()
-    db.refresh(record)
+    # Commit through the async session so clinical writes do not block API workers.
+    await db.commit()
+    await db.refresh(record)
 
     return record

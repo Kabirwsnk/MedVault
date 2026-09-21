@@ -1,8 +1,15 @@
-from fastapi import FastAPI
+import logging
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.config import CORS_ORIGINS
 from app.database import Base, engine
+from app.rate_limit import limiter
 
 from app.models.patient import Patient
 from app.models.user import User
@@ -26,6 +33,22 @@ from app.routers.pharmacy_dashboard import router as pharmacy_dashboard_router
 from app.routers.patient_dashboard import router as patient_dashboard_router
 
 app = FastAPI(title="MedVault AI", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+logger = logging.getLogger(__name__)
+
+
+@app.exception_handler(IntegrityError)
+async def handle_integrity_error(request: Request, exc: IntegrityError):
+    logger.warning("Database constraint rejected request %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=409, content={"detail": "The request conflicts with existing data."})
+
+
+@app.exception_handler(SQLAlchemyError)
+async def handle_database_error(request: Request, exc: SQLAlchemyError):
+    logger.exception("Database failure while handling %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=503, content={"detail": "Database temporarily unavailable."})
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,7 +71,7 @@ app.include_router(pharmacy_dashboard_router)
 app.include_router(patient_dashboard_router)
 
 @app.get("/")
-def home():
+async def home():
     return {
         "message": "Welcome to MedVault AI"
     }

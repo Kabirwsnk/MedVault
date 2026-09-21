@@ -49,6 +49,21 @@ class AdminBootstrapTests(unittest.TestCase):
 
         db.close()
 
+    def test_login_is_rate_limited(self):
+        client = TestClient(app)
+
+        # Limit repeated credential attempts before password verification becomes expensive.
+        responses = [
+            client.post(
+                "/auth/login",
+                data={"username": "unknown@example.com", "password": "wrong-password"},
+            )
+            for _ in range(6)
+        ]
+
+        self.assertEqual([response.status_code for response in responses[:5]], [401] * 5)
+        self.assertEqual(responses[5].status_code, 429)
+
 
 if __name__ == "__main__":
     unittest.main()

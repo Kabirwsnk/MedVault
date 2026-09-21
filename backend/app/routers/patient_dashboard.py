@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.dependencies import get_db
+from app.dependencies import get_async_db
 
 from app.models.patient import Patient
 from app.models.medical_record import MedicalRecord
@@ -26,26 +28,24 @@ router = APIRouter(
     "/{beneficiary_id}",
     response_model=PatientDashboardResponse
 )
-def get_patient_dashboard(
+async def get_patient_dashboard(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role(["patient"])
     )
 ):
 
-    patient = (
-        db.query(Patient)
+    result = await db.execute(
+        select(Patient)
         .options(
-            joinedload(Patient.records)
-            .joinedload(MedicalRecord.prescriptions)
-            .joinedload(Prescription.medicine)
+            selectinload(Patient.records)
+            .selectinload(MedicalRecord.prescriptions)
+            .selectinload(Prescription.medicine)
         )
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+        .where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         raise HTTPException(

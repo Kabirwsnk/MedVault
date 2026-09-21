@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.ai.context_builder import build_patient_context
 from app.ai.provider import ask_ai, summarize_ai
 from app.ai.symptom_checker import analyze_symptoms
-from app.dependencies import get_db
+from app.dependencies import get_async_db
 from app.models.patient import Patient
 from app.utils.authorization import CLINICAL_STAFF, require_patient_access
 from app.utils.roles import ROLE_ADMIN, ROLE_DOCTOR, ROLE_PATIENT, require_role
@@ -16,14 +18,14 @@ router = APIRouter(
 
 
 @router.get("/")
-def ai_home():
+async def ai_home():
     return {
         "message": "MedVault AI Module Running"
     }
 
 
 @router.get("/symptom-checker")
-def symptom_checker(
+async def symptom_checker(
     symptoms: str,
     current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PATIENT, ROLE_ADMIN])),
 ):
@@ -32,26 +34,23 @@ def symptom_checker(
 
 
 @router.get("/chat")
-def ai_chat(
+async def ai_chat(
     beneficiary_id: str,
     question: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PATIENT, ROLE_ADMIN])),
 ):
-    patient = db.query(Patient).filter(Patient.beneficiary_id == beneficiary_id).first()
+    result = await db.execute(
+        select(Patient).where(Patient.beneficiary_id == beneficiary_id)
+    )
+    patient = result.scalar_one_or_none()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     require_patient_access(current_user, patient, CLINICAL_STAFF)
 
-    context = build_patient_context(
-        beneficiary_id,
-        db
-    )
+    context = await build_patient_context(beneficiary_id, db)
 
-    answer = ask_ai(
-        question,
-        context
-    )
+    answer = await run_in_threadpool(ask_ai, question, context)
 
     return {
         "beneficiary_id": beneficiary_id,
@@ -61,22 +60,22 @@ def ai_chat(
 
 
 @router.get("/summary/{beneficiary_id}")
-def ai_patient_summary(
+async def ai_patient_summary(
     beneficiary_id: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PATIENT, ROLE_ADMIN])),
 ):
-    patient = db.query(Patient).filter(Patient.beneficiary_id == beneficiary_id).first()
+    result = await db.execute(
+        select(Patient).where(Patient.beneficiary_id == beneficiary_id)
+    )
+    patient = result.scalar_one_or_none()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     require_patient_access(current_user, patient, CLINICAL_STAFF)
 
-    context = build_patient_context(
-        beneficiary_id,
-        db
-    )
+    context = await build_patient_context(beneficiary_id, db)
 
-    summary = summarize_ai(context)
+    summary = await run_in_threadpool(summarize_ai, context)
 
     return {
         "beneficiary_id": beneficiary_id,

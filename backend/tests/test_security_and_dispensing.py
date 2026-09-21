@@ -1,4 +1,5 @@
 """Executable regression checks for the highest-risk MedVault workflows."""
+import asyncio
 import os
 import tempfile
 import unittest
@@ -9,7 +10,7 @@ os.environ["JWT_SECRET_KEY"] = "test-secret-not-for-production"
 
 from fastapi.testclient import TestClient
 
-from app.database import Base, SessionLocal, engine
+from app.database import AsyncSessionLocal, Base, SessionLocal, engine
 from app.main import app
 from app.models.inventory_movement import InventoryMovement
 from app.models.medical_record import MedicalRecord
@@ -34,16 +35,17 @@ class SecurityAndDispensingTests(unittest.TestCase):
         doctor = User(email="doctor@test.local", password=hash_password("Secure password 123"), role="doctor")
         other_doctor = User(email="other_doc@test.local", password=hash_password("Secure password 123"), role="doctor")
         pharmacist = User(email="pharmacy@test.local", password=hash_password("Secure password 123"), role="pharmacy")
+        registration_worker = User(email="worker@test.local", password=hash_password("Secure password 123"), role="registration_worker")
         first_user = User(email="first@test.local", password=hash_password("Secure password 123"), role="patient")
         second_user = User(email="second@test.local", password=hash_password("Secure password 123"), role="patient")
-        db.add_all((doctor, other_doctor, pharmacist, first_user, second_user))
+        db.add_all((doctor, other_doctor, pharmacist, registration_worker, first_user, second_user))
         db.flush()
         db.add_all((
             Patient(beneficiary_id="MV260001", full_name="First", phone_number="1234567890", aadhar_number="111111111111", user_id=first_user.id),
             Patient(beneficiary_id="MV260002", full_name="Second", phone_number="1234567891", aadhar_number="222222222222", user_id=second_user.id),
         ))
         db.commit()
-        self.db, self.doctor, self.other_doctor, self.pharmacist, self.first_user = db, doctor, other_doctor, pharmacist, first_user
+        self.db, self.doctor, self.other_doctor, self.pharmacist, self.registration_worker, self.first_user = db, doctor, other_doctor, pharmacist, registration_worker, first_user
 
     def tearDown(self):
         self.db.close()
@@ -57,6 +59,30 @@ class SecurityAndDispensingTests(unittest.TestCase):
         self.assertEqual(client.get("/patients/profile/MV260001", headers=patient_headers).status_code, 200)
         self.assertEqual(client.get("/patients/profile/MV260002", headers=doctor_headers).status_code, 200)
 
+    def test_async_patient_registration_and_update(self):
+        client = TestClient(app)
+        worker_headers = {"Authorization": "Bearer " + create_access_token({"sub": self.registration_worker.email, "role": "registration_worker"})}
+
+        response = client.post(
+            "/patients/",
+            json={
+                "full_name": "Async Registration",
+                "phone_number": "1234567892",
+                "aadhar_number": "333333333333",
+            },
+            headers=worker_headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        beneficiary_id = response.json()["beneficiary_id"]
+
+        response = client.put(
+            f"/patients/{beneficiary_id}",
+            json={"phone_number": "1234567893"},
+            headers=worker_headers,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["phone_number"], "1234567893")
+
     def test_dispensing_creates_exactly_one_inventory_movement(self):
         patient = self.db.query(Patient).first()
         medicine = Medicine(medicine_name="Demo", manufacturer="Acme", unit="tablet", stock=10)
@@ -68,7 +94,11 @@ class SecurityAndDispensingTests(unittest.TestCase):
         prescription = Prescription(medical_record_id=record.id, medicine_id=medicine.id, quantity=3, dosage="Daily", duration="3 days")
         self.db.add(prescription)
         self.db.commit()
-        dispense_prescription(self.db, prescription.id, self.pharmacist.id)
+        async def dispense_once():
+            async with AsyncSessionLocal() as async_db:
+                await dispense_prescription(async_db, prescription.id, self.pharmacist.id)
+
+        asyncio.run(dispense_once())
         self.db.refresh(medicine)
         self.assertEqual(medicine.stock, 7)
         self.assertEqual(self.db.query(InventoryMovement).count(), 1)
@@ -179,13 +209,17 @@ class SecurityAndDispensingTests(unittest.TestCase):
         self.db.commit()
 
         # First dispense should succeed
-        dispense_prescription(self.db, prescription.id, self.pharmacist.id)
+        async def dispense_once():
+            async with AsyncSessionLocal() as async_db:
+                await dispense_prescription(async_db, prescription.id, self.pharmacist.id)
+
+        asyncio.run(dispense_once())
 
         # Second dispense should raise HTTPException 409
         from fastapi import HTTPException
 
         with self.assertRaises(HTTPException) as cm:
-            dispense_prescription(self.db, prescription.id, self.pharmacist.id)
+            asyncio.run(dispense_once())
 
         self.assertEqual(cm.exception.status_code, 409)
 
@@ -197,8 +231,8 @@ class SecurityAndDispensingTests(unittest.TestCase):
         self.db.add(new_patient)
         self.db.commit()
 
-        # Enroll via public endpoint
-        res = client.post("/auth/patient-enrollment", json={"beneficiary_id": "MV260010", "email": "enroll@example.com", "password": "EnrollPass12345"})
+        registration_headers = {"Authorization": "Bearer " + create_access_token({"sub": self.registration_worker.email, "role": "registration_worker"})}
+        res = client.post("/auth/patient-enrollment", json={"beneficiary_id": "MV260010", "email": "enroll@example.com", "password": "EnrollPass12345"}, headers=registration_headers)
         self.assertEqual(res.status_code, 201)
 
         # Ensure patient cannot view another patient's card

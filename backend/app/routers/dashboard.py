@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db
+from app.dependencies import get_async_db
 
 from app.models.patient import Patient
 from app.models.medical_record import MedicalRecord
@@ -26,32 +27,18 @@ router = APIRouter(
     "/stats",
     response_model=DashboardResponse
 )
-def dashboard_stats(
-    db: Session = Depends(get_db),
+async def dashboard_stats(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role(["doctor"])
     )
 ):
 
-    total_patients = (
-        db.query(Patient)
-        .count()
-    )
-
-    total_medical_records = (
-        db.query(MedicalRecord)
-        .count()
-    )
-
-    total_prescriptions = (
-        db.query(Prescription)
-        .count()
-    )
-
-    total_medicines = (
-        db.query(Medicine)
-        .count()
-    )
+    # Independent aggregate queries keep this read model simple and non-blocking.
+    total_patients = (await db.execute(select(func.count()).select_from(Patient))).scalar_one()
+    total_medical_records = (await db.execute(select(func.count()).select_from(MedicalRecord))).scalar_one()
+    total_prescriptions = (await db.execute(select(func.count()).select_from(Prescription))).scalar_one()
+    total_medicines = (await db.execute(select(func.count()).select_from(Medicine))).scalar_one()
 
     return {
         "total_patients": total_patients,
@@ -64,19 +51,15 @@ def dashboard_stats(
     "/recent-patients",
     response_model=list[RecentPatientResponse]
 )
-def recent_patients(
-    db: Session = Depends(get_db),
+async def recent_patients(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role(["doctor"])
     )
 ):
 
-    patients = (
-        db.query(Patient)
-        .order_by(Patient.id.desc())
-        .limit(10)
-        .all()
-    )
+    result = await db.execute(select(Patient).order_by(Patient.id.desc()).limit(10))
+    patients = result.scalars().all()
 
     return patients  
 
@@ -84,18 +67,14 @@ def recent_patients(
     "/recent-records",
     response_model=list[RecentMedicalRecordResponse]
 )
-def recent_records(
-    db: Session = Depends(get_db),
+async def recent_records(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role(["doctor"])
     )
 ):
 
-    records = (
-        db.query(MedicalRecord)
-        .order_by(MedicalRecord.id.desc())
-        .limit(10)
-        .all()
-    )
+    result = await db.execute(select(MedicalRecord).order_by(MedicalRecord.id.desc()).limit(10))
+    records = result.scalars().all()
 
     return records  

@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import LOW_STOCK_THRESHOLD
-from app.dependencies import get_db
+from app.dependencies import get_async_db
 from app.models.medicine import Medicine
 from app.models.prescription import Prescription
 from app.schemas.pharmacy_dashboard import PharmacyDashboardResponse
@@ -18,29 +19,30 @@ router = APIRouter(
     "/stats",
     response_model=PharmacyDashboardResponse
 )
-def pharmacy_dashboard_stats(
-    db: Session = Depends(get_db),
+async def pharmacy_dashboard_stats(
+    db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
         require_role([ROLE_PHARMACY])
     )
 ):
-    total_medicines = db.query(Medicine).count()
-    total_prescriptions = db.query(Prescription).count()
+    # Dashboard reads use async aggregates so reporting traffic does not block API workers.
+    total_medicines = (await db.execute(select(func.count()).select_from(Medicine))).scalar_one()
+    total_prescriptions = (await db.execute(select(func.count()).select_from(Prescription))).scalar_one()
     pending_prescriptions = (
-        db.query(Prescription)
-        .filter(Prescription.dispensed.is_(False))
-        .count()
-    )
+        await db.execute(
+            select(func.count()).select_from(Prescription).where(Prescription.dispensed.is_(False))
+        )
+    ).scalar_one()
     dispensed_prescriptions = (
-        db.query(Prescription)
-        .filter(Prescription.dispensed.is_(True))
-        .count()
-    )
+        await db.execute(
+            select(func.count()).select_from(Prescription).where(Prescription.dispensed.is_(True))
+        )
+    ).scalar_one()
     low_stock_medicines = (
-        db.query(Medicine)
-        .filter(Medicine.stock < LOW_STOCK_THRESHOLD)
-        .count()
-    )
+        await db.execute(
+            select(func.count()).select_from(Medicine).where(Medicine.stock < LOW_STOCK_THRESHOLD)
+        )
+    ).scalar_one()
 
     return {
         "total_medicines": total_medicines,

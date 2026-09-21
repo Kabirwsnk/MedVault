@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, func
+from sqlalchemy import CheckConstraint, Column, DateTime, Integer, String, UniqueConstraint, func
 
 from app.database import Base
 
@@ -7,7 +7,10 @@ from sqlalchemy.orm import relationship
 
 class Medicine(Base):
     __tablename__ = "medicines"
-    __table_args__ = (CheckConstraint("stock >= 0", name="ck_medicines_stock_nonnegative"),)
+    __table_args__ = (
+        CheckConstraint("stock >= 0", name="ck_medicines_stock_nonnegative"),
+        UniqueConstraint("medicine_name", name="uq_medicines_medicine_name"),
+    )
 
     id = Column(
         Integer,

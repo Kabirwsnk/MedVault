@@ -1,43 +1,37 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.patient import Patient
 from app.models.medical_record import MedicalRecord
 from app.models.prescription import Prescription
 
-def build_patient_context(
+async def build_patient_context(
     beneficiary_id: str,
-    db: Session
+    db: AsyncSession,
 ):
-    # Get patient
-    patient = (
-        db.query(Patient)
-        .filter(
-            Patient.beneficiary_id == beneficiary_id
-        )
-        .first()
+    result = await db.execute(
+        select(Patient).where(Patient.beneficiary_id == beneficiary_id)
     )
+    patient = result.scalar_one_or_none()
 
     if not patient:
         return "Patient not found."
 
     # Get all medical records
-    medical_records = (
-        db.query(MedicalRecord)
-        .filter(
-            MedicalRecord.patient_id == patient.id
-        )
-        .all()
+    result = await db.execute(
+        select(MedicalRecord).where(MedicalRecord.patient_id == patient.id)
     )
+    medical_records = result.scalars().all()
 
     # Get all prescriptions for this patient
-    prescriptions = (
-        db.query(Prescription)
+    result = await db.execute(
+        select(Prescription)
         .join(MedicalRecord)
-        .filter(
-            MedicalRecord.patient_id == patient.id
-        )
-        .all()
+        .options(selectinload(Prescription.medicine))
+        .where(MedicalRecord.patient_id == patient.id)
     )
+    prescriptions = result.scalars().all()
 
     # Start building context
     context = f"""
