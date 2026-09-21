@@ -77,15 +77,15 @@ def seed_demo(ensure_tables: bool = False) -> bool:
         if db.query(Patient).count() == 0:
             patient = Patient(
                 beneficiary_id="MV260001",
-                first_name="Aarav",
-                last_name="Sharma",
+                full_name="Aarav Sharma",
                 date_of_birth=date(1988, 6, 15),
                 gender="Male",
                 phone_number="+91 98765 43210",
-                address="42 Civil Lines, Nagpur, Maharashtra",
-                emergency_contact_name="Priya Sharma",
-                emergency_contact_phone="+91 98765 43211",
+                aadhar_number="123456789012",
+                emergency_contact="Priya Sharma (+91 98765 43211)",
                 blood_group="B+",
+                height_cm=175,
+                weight_kg=72,
             )
             db.add(patient)
             print("Seeded sample patient: Aarav Sharma (MV260001)")
