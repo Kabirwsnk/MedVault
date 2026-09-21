@@ -2,8 +2,8 @@
 
 **Question this file answers:** where is MedVault **right now**?
 
-Last local commits: `b36a320` UI redesign, `090c8b2` offline drafts and retry-safe sync.  
-Remote: local `main` contains commits not yet pushed to `origin/main`.  
+Last local commits: `37b9fb8` docs update, `b76e916` architecture sync, `b36a320` UI redesign, `090c8b2` offline drafts.  
+Remote: local `main` is in sync with `origin/main`.  
 Ignored local files include `backend/.env`, virtual environments, build output, and archives.
 
 ---
