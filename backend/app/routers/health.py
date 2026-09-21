@@ -13,10 +13,10 @@ async def health_check():
     try:
         async with async_engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
-    except Exception:
+    except Exception as exc:
         return JSONResponse(
             status_code=503,
-            content={"status": "degraded", "database": "unavailable"},
+            content={"status": "degraded", "database": "unavailable", "detail": str(exc)},
         )
 
     return {"status": "ok", "database": "available"}

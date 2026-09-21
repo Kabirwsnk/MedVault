@@ -33,12 +33,35 @@ elif ASYNC_DATABASE_URL.startswith("postgresql://"):
 elif ASYNC_DATABASE_URL.startswith("sqlite:///"):
     ASYNC_DATABASE_URL = ASYNC_DATABASE_URL.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
 
-if "sslmode=" in ASYNC_DATABASE_URL:
-    ASYNC_DATABASE_URL = ASYNC_DATABASE_URL.replace("sslmode=require", "ssl=require").replace("sslmode=prefer", "ssl=prefer")
+async_connect_args = {}
+
+if "postgresql+asyncpg://" in ASYNC_DATABASE_URL:
+    import ssl as _ssl
+    from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+    parsed = urlparse(ASYNC_DATABASE_URL)
+    query_params = parse_qs(parsed.query)
+
+    # Extract and remove sslmode/ssl query parameter which causes issues in asyncpg
+    ssl_mode = query_params.pop("sslmode", [None])[0] or query_params.pop("ssl", [None])[0]
+    new_query = urlencode(query_params, doseq=True)
+    ASYNC_DATABASE_URL = urlunparse(parsed._replace(query=new_query))
+
+    is_remote = parsed.hostname and not (
+        parsed.hostname in ("localhost", "127.0.0.1")
+        or parsed.hostname.endswith(".internal")
+        or (parsed.hostname.startswith("dpg-") and "." not in parsed.hostname)
+    )
+    if ssl_mode in ("require", "verify-ca", "verify-full") or is_remote:
+        ctx = _ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = _ssl.CERT_NONE
+        async_connect_args["ssl"] = ctx
 
 # Async sessions let FastAPI yield the event loop while PostgreSQL handles I/O.
 async_engine = create_async_engine(
     ASYNC_DATABASE_URL,
+    connect_args=async_connect_args,
     pool_pre_ping=True,
     pool_size=DB_POOL_SIZE,
     max_overflow=DB_MAX_OVERFLOW,

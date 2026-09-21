@@ -14,7 +14,7 @@ import {
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const REQUEST_TIMEOUT_MS = 10000;
+const REQUEST_TIMEOUT_MS = 45000;
 const MAX_SAFE_RETRIES = 2;
 
 class ApiError extends Error {
