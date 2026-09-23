@@ -103,13 +103,13 @@ export const LoginPage: React.FC = () => {
               >
                 <Shield size={26} color="#ffffff" strokeWidth={2.5} />
               </div>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.03em' }}>
-                MedVault<span style={{ color: 'var(--accent-primary)' }}>.AI</span>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-main)' }}>
+                MedVault
               </h2>
             </div>
 
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9375rem', lineHeight: '1.6', marginBottom: '2rem' }}>
-              Unified, role-protected clinical identity platform. Secure patient records, atomic pharmacy dispensing, and AI-assisted health memory.
+              Unified, role-protected clinical identity platform. Secure patient records, atomic pharmacy dispensing, and cryptographic health IDs.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="MedVault AI", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="MedVault", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -90,5 +90,5 @@ app.include_router(health_router)
 @app.get("/")
 async def home():
     return {
-        "message": "Welcome to MedVault AI"
+        "message": "Welcome to MedVault"
     }

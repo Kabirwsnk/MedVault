@@ -124,8 +124,8 @@ Open your live frontend URL and verify each station using the built-in **Quick P
 
 You can include MedVault on your resume with this format:
 
-> **MedVault AI — Unified Clinical Identity & Pharmacy Platform**  
-> *Live Demo:* `https://medvault.vercel.app` | *GitHub:* `https://github.com/Kabirwsnk/MedVault`  
-> - Engineered an enterprise clinical healthcare system with role-based access control (Admin, Doctor, Pharmacy, Registration).  
-> - Designed deterministic Beneficiary ID generation, atomic inventory ledger, and QR-coded digital health cards.  
-> - Deployed resilient SPA on Vercel with FastAPI backend on Render, Neon Serverless PostgreSQL, and Upstash Redis rate limiting.
+> **MedVault — Concurrency-Safe Clinical Identity & Pharmacy Platform**  
+> *Live Demo:* `https://med-vault-aia7.vercel.app` | *GitHub:* `https://github.com/Kabirwsnk/MedVault`  
+> - Engineered an enterprise clinical healthcare system with role-based access control (Admin, Doctor, Pharmacy, Registration, Patient).  
+> - Designed deterministic Beneficiary ID generation using PostgreSQL advisory locks and atomic two-phase prescription dispensing.  
+> - Built resilient offline-first encounter drafts in IndexedDB with idempotent retry synchronization and cryptographic QR health cards.
