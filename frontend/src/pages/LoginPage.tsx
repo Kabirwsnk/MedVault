@@ -1,15 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { api } from '../api/client';
+import { Shield, Lock, Mail, ArrowRight, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isWakingUp, setIsWakingUp] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Pre-warm the backend on initial page visit (wakes up free tier before user submits)
+  useEffect(() => {
+    api.health().catch(() => {});
+  }, []);
+
+  // Show cold-start wake-up notice if login takes > 2.5 seconds
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    if (isLoading) {
+      timer = setTimeout(() => setIsWakingUp(true), 2500);
+    } else {
+      setIsWakingUp(false);
+    }
+    return () => clearTimeout(timer);
+  }, [isLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,6 +237,28 @@ export const LoginPage: React.FC = () => {
                 </>
               )}
             </button>
+
+            {isWakingUp && (
+              <div
+                className="animate-fade-in"
+                style={{
+                  marginTop: '0.75rem',
+                  padding: '0.5rem 0.75rem',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'rgba(6, 182, 212, 0.1)',
+                  border: '1px solid rgba(6, 182, 212, 0.25)',
+                  fontSize: '0.75rem',
+                  color: 'var(--accent-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  justifyContent: 'center',
+                }}
+              >
+                <RefreshCw size={13} className="animate-spin" />
+                <span>Waking up cloud server from standby (~25s on free tier)...</span>
+              </div>
+            )}
           </form>
 
           <div
