@@ -13,6 +13,7 @@ Built with **FastAPI**, **PostgreSQL** (SQLAlchemy 2.x async + Alembic), and **R
 | **Doctor Station** | `doctor` | `doctor@medvault.test` | `DoctorSecurePassword123!` | Clinical encounters, diagnosis, structured prescriptions |
 | **Pharmacy Station** | `pharmacy` | `pharmacy@medvault.test` | `PharmacySecurePassword123!` | Atomic dispensing, critical stock alerts, inventory restock |
 | **Registration Station** | `registration_worker` | `worker@medvault.test` | `WorkerSecurePassword123!` | Beneficiary registration, QR health card issuance, PDF card |
+| **Patient Health Vault** | `patient` | `patient@medvault.test` | `PatientSecurePassword123!` | View personal clinical records, prescriptions, digital QR card |
 | **Admin Console** | `admin` | `admin@local.test` | `AdminSecurePassword123!` | Staff provisioning, telemetry, system audit controls |
 
 > **Live Deployment Guide:** Refer to [DEPLOYMENT.md](DEPLOYMENT.md) for 1-click cloud deployment on **Render (FastAPI)** + **Vercel (React SPA)** + **Neon (Serverless PostgreSQL)**.

@@ -36,7 +36,12 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(email, password);
-      navigate('/');
+      const currentUser = await api.getMe().catch(() => null);
+      if (currentUser?.role === 'patient') {
+        navigate('/patient');
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setError(err?.message || 'Invalid credentials or connection error');
     } finally {
@@ -159,6 +164,14 @@ export const LoginPage: React.FC = () => {
                 onClick={() => setPreset('worker@medvault.test', 'WorkerSecurePassword123!')}
               >
                 Registration
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', borderColor: 'rgba(244, 63, 94, 0.4)', color: '#f43f5e' }}
+                onClick={() => setPreset('patient@medvault.test', 'PatientSecurePassword123!')}
+              >
+                Patient
               </button>
             </div>
 

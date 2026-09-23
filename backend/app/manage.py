@@ -54,12 +54,16 @@ def seed_demo(ensure_tables: bool = False) -> bool:
             ("doctor@medvault.test", "DoctorSecurePassword123!", "doctor"),
             ("pharmacy@medvault.test", "PharmacySecurePassword123!", "pharmacy"),
             ("worker@medvault.test", "WorkerSecurePassword123!", "registration_worker"),
+            ("patient@medvault.test", "PatientSecurePassword123!", "patient"),
         ]
         for email, password, role in users:
             if not db.query(User).filter(User.email == email).first():
                 user = User(email=email, password=hash_password(password), role=role, is_active=True)
                 db.add(user)
                 print(f"Created demo user: {email} ({role})")
+
+        db.flush()
+        patient_user = db.query(User).filter(User.email == "patient@medvault.test").first()
 
         if db.query(Medicine).count() == 0:
             medicines = [
@@ -74,8 +78,9 @@ def seed_demo(ensure_tables: bool = False) -> bool:
             db.add_all(medicines)
             print(f"Seeded {len(medicines)} essential medicines.")
 
-        if db.query(Patient).count() == 0:
-            patient = Patient(
+        sample_patient = db.query(Patient).filter(Patient.beneficiary_id == "MV260001").first()
+        if not sample_patient:
+            sample_patient = Patient(
                 beneficiary_id="MV260001",
                 full_name="Aarav Sharma",
                 date_of_birth=date(1988, 6, 15),
@@ -86,9 +91,13 @@ def seed_demo(ensure_tables: bool = False) -> bool:
                 blood_group="B+",
                 height_cm=175,
                 weight_kg=72,
+                user_id=patient_user.id if patient_user else None,
             )
-            db.add(patient)
+            db.add(sample_patient)
             print("Seeded sample patient: Aarav Sharma (MV260001)")
+        elif patient_user and sample_patient.user_id != patient_user.id:
+            sample_patient.user_id = patient_user.id
+            print("Linked sample patient MV260001 to patient@medvault.test")
 
         db.commit()
         print("Demo seed completed successfully.")
