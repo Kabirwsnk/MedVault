@@ -20,7 +20,7 @@ export interface Patient {
   beneficiary_id: string;
   full_name: string;
   phone_number: string;
-  aadhar_number: string;
+  aadhar_number?: string | null;
   user_id?: number | null;
   blood_group?: string | null;
   date_of_birth?: string | null;

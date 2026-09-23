@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { api } from '../api/client';
 import { Patient, PatientCreateRequest } from '../types';
 import { BeneficiaryCardModal } from '../components/BeneficiaryCardModal';
@@ -14,14 +15,17 @@ import {
   Eye,
   RefreshCw,
   CheckCircle2,
+  Trash2,
 } from 'lucide-react';
 
 
 export const RegistrationPortal: React.FC = () => {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'register' | 'directory'>('register');
   const [patients, setPatients] = useState<Patient[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoadingPatients, setIsLoadingPatients] = useState(false);
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<PatientCreateRequest>({
@@ -48,6 +52,12 @@ export const RegistrationPortal: React.FC = () => {
     loadPatients();
   }, []);
 
+  useEffect(() => {
+    if (location.pathname.includes('/cards')) {
+      setActiveTab('directory');
+    }
+  }, [location.pathname]);
+
   const loadPatients = async () => {
     setIsLoadingPatients(true);
     try {
@@ -57,6 +67,29 @@ export const RegistrationPortal: React.FC = () => {
       console.error('Failed to load patient directory:', err);
     } finally {
       setIsLoadingPatients(false);
+    }
+  };
+
+  const handleDeletePatient = async (patient: Patient) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete patient "${patient.full_name}" (${patient.beneficiary_id})?\n\nThis will remove their demographics and associated records.`
+    );
+    if (!confirmed) return;
+
+    setIsDeletingId(patient.beneficiary_id);
+    setError(null);
+    try {
+      await api.deletePatient(patient.beneficiary_id);
+      setPatients((prev) => prev.filter((p) => p.beneficiary_id !== patient.beneficiary_id));
+      setSuccessBanner(`Patient ${patient.beneficiary_id} (${patient.full_name}) has been permanently deleted.`);
+      if (createdPatient?.beneficiary_id === patient.beneficiary_id) {
+        setCreatedPatient(null);
+      }
+    } catch (err: any) {
+      console.error('Failed to delete patient:', err);
+      setError(err?.message || 'Failed to delete patient record.');
+    } finally {
+      setIsDeletingId(null);
     }
   };
 
@@ -484,7 +517,7 @@ export const RegistrationPortal: React.FC = () => {
                         {p.gender || 'N/A'} ({p.date_of_birth || 'N/A'})
                       </td>
                       <td style={{ padding: '0.75rem' }} className="font-mono text-dim">
-                        XXXX-XXXX-{p.aadhar_number.slice(-4)}
+                        XXXX-XXXX-{(p.aadhar_number || '').replace(/\D/g, '').slice(-4) || '••••'}
                       </td>
                       <td style={{ padding: '0.75rem', textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '0.375rem' }}>
@@ -517,6 +550,21 @@ export const RegistrationPortal: React.FC = () => {
                             <FileDown size={13} />
                             <span>PDF</span>
                           </a>
+                          <button
+                            onClick={() => handleDeletePatient(p)}
+                            disabled={isDeletingId === p.beneficiary_id}
+                            className="btn btn-outline"
+                            style={{
+                              padding: '0.3rem 0.6rem',
+                              fontSize: '0.75rem',
+                              borderColor: 'rgba(244, 63, 94, 0.4)',
+                              color: '#f43f5e',
+                            }}
+                            title="Delete Beneficiary Record"
+                          >
+                            <Trash2 size={13} />
+                            <span>{isDeletingId === p.beneficiary_id ? '...' : 'Delete'}</span>
+                          </button>
                         </div>
                       </td>
                     </tr>

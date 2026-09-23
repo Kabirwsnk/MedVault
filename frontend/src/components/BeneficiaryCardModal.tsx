@@ -249,7 +249,7 @@ export const BeneficiaryCardModal: React.FC<BeneficiaryCardModalProps> = ({ pati
                 <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                   <span style={{ color: 'var(--text-dim)' }}>Aadhaar Hash: </span>
                   <span className="font-mono" style={{ color: '#cbd5e1' }}>
-                    XXXX-XXXX-{patient.aadhar_number.slice(-4)}
+                    XXXX-XXXX-{(patient.aadhar_number || '').replace(/\D/g, '').slice(-4) || '••••'}
                   </span>
                 </div>
               </div>

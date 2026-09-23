@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -10,6 +10,7 @@ from app.dependencies import get_async_db, get_db
 from app.models.patient import Patient
 from app.models.medical_record import MedicalRecord
 from app.models.prescription import Prescription
+from app.models.user import User
 from app.schemas.patient import (
     PatientCreate,
     PatientResponse,
@@ -473,3 +474,62 @@ async def update_patient(
     await db.refresh(patient)
 
     return patient
+
+
+@router.delete(
+    "/{beneficiary_id}",
+    status_code=200,
+)
+async def delete_patient(
+    beneficiary_id: str,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(
+        require_role([
+            ROLE_REGISTRATION_WORKER,
+            ROLE_ADMIN,
+        ])
+    ),
+):
+    result = await db.execute(
+        select(Patient)
+        .options(selectinload(Patient.records))
+        .where(Patient.beneficiary_id == beneficiary_id)
+    )
+    patient = result.scalar_one_or_none()
+
+    if not patient:
+        raise HTTPException(
+            status_code=404,
+            detail="Patient not found"
+        )
+
+    # 1. Cascade delete associated prescriptions and medical records if any
+    record_ids = [r.id for r in patient.records]
+    if record_ids:
+        await db.execute(
+            delete(Prescription).where(Prescription.medical_record_id.in_(record_ids))
+        )
+        await db.execute(
+            delete(MedicalRecord).where(MedicalRecord.id.in_(record_ids))
+        )
+
+    # 2. If a patient portal user account is linked, safely clean it up
+    user_id_to_delete = patient.user_id
+    if user_id_to_delete:
+        patient.user_id = None
+        await db.flush()
+        user_res = await db.execute(
+            select(User).where(User.id == user_id_to_delete)
+        )
+        user_obj = user_res.scalar_one_or_none()
+        if user_obj and user_obj.role == ROLE_PATIENT:
+            await db.delete(user_obj)
+
+    # 3. Delete the patient
+    await db.delete(patient)
+    await db.commit()
+
+    return {
+        "message": f"Patient {beneficiary_id} and associated records successfully deleted.",
+        "beneficiary_id": beneficiary_id,
+    }

@@ -176,6 +176,12 @@ export const api = {
     });
   },
 
+  async deletePatient(beneficiary_id: string): Promise<{ message: string; beneficiary_id: string }> {
+    return request<{ message: string; beneficiary_id: string }>(`/patients/${beneficiary_id}`, {
+      method: 'DELETE',
+    });
+  },
+
 
   async getPatientProfile(beneficiary_id: string): Promise<Patient> {
     return request<Patient>(`/patients/profile/${beneficiary_id}`);

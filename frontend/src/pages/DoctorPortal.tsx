@@ -371,7 +371,7 @@ export const DoctorPortal: React.FC = () => {
               <div className="glass-panel animate-fade-in" style={{ padding: '1.5rem', border: '1px solid rgba(168, 85, 247, 0.4)', background: 'rgba(30, 27, 75, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', color: '#c4b5fd' }}>
                   <Bot size={18} />
-                  <strong style={{ fontSize: '0.9375rem' }}>MedVault AI Patient Brief</strong>
+                  <strong style={{ fontSize: '0.9375rem' }}>MedVault Clinical Summary Brief</strong>
                 </div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-main)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                   {aiSummary}

@@ -58,7 +58,7 @@ export const Navbar: React.FC = () => {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>
-              MedVault <span style={{ color: 'var(--accent-primary)' }}>AI</span>
+              MedVault
             </span>
             <span
               style={{

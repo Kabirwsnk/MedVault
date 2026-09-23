@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -22,12 +22,15 @@ class PatientResponse(BaseModel):
     beneficiary_id: str
     full_name: str
     phone_number: str
+    aadhar_number: str | None = None
     blood_group: str | None = None
     date_of_birth: date | None = None
     gender: str | None = None
     height_cm: int | None = None
     weight_kg: int | None = None
     emergency_contact: str | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
     class Config:
         from_attributes = True
@@ -37,6 +40,7 @@ class PatientProfileResponse(BaseModel):
     beneficiary_id: str
     full_name: str
     phone_number: str
+    aadhar_number: str | None = None
     blood_group: str | None = None
     date_of_birth: date | None = None
     gender: str | None = None
