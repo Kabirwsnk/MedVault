@@ -48,7 +48,8 @@ export interface Prescription {
   id: number;
   medical_record_id: number;
   medicine_id: number;
-  medicine_name?: string;
+  medicine_name?: string | null;
+  patient_name?: string | null;
   quantity: number;
   dosage: string;
   duration: string;
@@ -57,6 +58,7 @@ export interface Prescription {
   dispensed_by_user_id?: number | null;
   created_at: string;
 }
+
 
 export interface MedicalRecord {
   id: number;

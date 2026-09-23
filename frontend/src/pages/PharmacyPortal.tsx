@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Medicine, Prescription, InventoryMovement } from '../types';
-import { Pill, CheckCircle2, AlertCircle, RefreshCw, PackagePlus, ArrowDownUp } from 'lucide-react';
+import { Pill, CheckCircle2, AlertCircle, RefreshCw, PackagePlus, ArrowDownUp, AlertTriangle, X } from 'lucide-react';
 
 export const PharmacyPortal: React.FC = () => {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [movements, setMovements] = useState<InventoryMovement[]>([]);
+  const [criticalMeds, setCriticalMeds] = useState<Medicine[]>([]);
+  const [alertDismissed, setAlertDismissed] = useState(false);
   const [activeTab, setActiveTab] = useState<'queue' | 'inventory' | 'movements'>('queue');
   const [isDispensing, setIsDispensing] = useState<number | null>(null);
   const [restockMedicineId, setRestockMedicineId] = useState<number | null>(null);
@@ -19,14 +21,17 @@ export const PharmacyPortal: React.FC = () => {
 
   const loadAllData = async () => {
     try {
-      const [rxData, medData, movData] = await Promise.all([
+      const [rxData, medData, movData, critData] = await Promise.all([
         api.getPrescriptions().catch(() => []),
         api.getMedicines().catch(() => []),
         api.getInventoryMovements().catch(() => []),
+        api.getCriticalStock().catch(() => []),
       ]);
       setPrescriptions(rxData);
       setMedicines(medData);
       setMovements(movData);
+      setCriticalMeds(critData);
+      setAlertDismissed(false);
     } catch (err: any) {
       console.error('Error fetching pharmacy data:', err);
     }
@@ -53,13 +58,16 @@ export const PharmacyPortal: React.FC = () => {
 
     try {
       await api.restockMedicine(restockMedicineId, restockQty);
-      setFeedback({ type: 'success', message: `Successfully restocked item (+${restockQty})!` });
+      const med = medicines.find((m) => m.id === restockMedicineId);
+      setFeedback({ type: 'success', message: `Successfully restocked ${med?.medicine_name ?? `#${restockMedicineId}`} (+${restockQty} units)!` });
       setRestockMedicineId(null);
       await loadAllData();
     } catch (err: any) {
       setFeedback({ type: 'error', message: err.message || 'Restock failed' });
     }
   };
+
+  const pendingCount = prescriptions.filter((p) => !p.dispensed).length;
 
   return (
     <div className="page-body animate-fade-in">
@@ -80,7 +88,7 @@ export const PharmacyPortal: React.FC = () => {
             <Pill size={22} color="var(--accent-secondary)" />
           </div>
           <div>
-            <h2 style={{ fontSize: '1.5rem' }}>Pharmacy Dispensing & Inventory</h2>
+            <h2 style={{ fontSize: '1.5rem' }}>Pharmacy Dispensing &amp; Inventory</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
               Atomic prescription fulfillment, row-level stock locks, and inventory movements.
             </p>
@@ -92,6 +100,40 @@ export const PharmacyPortal: React.FC = () => {
           <span>Refresh Data</span>
         </button>
       </div>
+
+      {/* Critical Stock Alert Banner */}
+      {criticalMeds.length > 0 && !alertDismissed && (
+        <div
+          className="animate-fade-in"
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '0.75rem',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.25rem',
+            borderRadius: 'var(--radius-md)',
+            background: 'rgba(239, 68, 68, 0.12)',
+            border: '1px solid rgba(239, 68, 68, 0.4)',
+          }}
+        >
+          <AlertTriangle size={20} color="#f87171" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 700, color: '#f87171', fontSize: '0.9375rem', marginBottom: '0.25rem' }}>
+              {criticalMeds.length} medicine{criticalMeds.length > 1 ? 's' : ''} critically low — restock immediately
+            </p>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+              {criticalMeds.map((m) => `${m.medicine_name} (${m.stock} left)`).join(' · ')}
+            </p>
+          </div>
+          <button
+            onClick={() => setAlertDismissed(true)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '0.1rem' }}
+            aria-label="Dismiss alert"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {feedback && (
         <div className={`alert ${feedback.type === 'success' ? 'alert-success' : 'alert-error'} animate-fade-in`}>
@@ -107,7 +149,7 @@ export const PharmacyPortal: React.FC = () => {
           className={`btn ${activeTab === 'queue' ? 'btn-primary' : 'btn-outline'}`}
           style={{ fontSize: '0.8125rem', padding: '0.4rem 1rem' }}
         >
-          Prescription Queue ({prescriptions.filter((p) => !p.dispensed).length} pending)
+          Prescription Queue ({pendingCount} pending)
         </button>
         <button
           onClick={() => setActiveTab('inventory')}
@@ -139,10 +181,10 @@ export const PharmacyPortal: React.FC = () => {
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '0.75rem' }}>Rx ID</th>
-                    <th style={{ padding: '0.75rem' }}>Medical Record</th>
-                    <th style={{ padding: '0.75rem' }}>Medicine ID</th>
-                    <th style={{ padding: '0.75rem' }}>Quantity</th>
-                    <th style={{ padding: '0.75rem' }}>Dosage & Duration</th>
+                    <th style={{ padding: '0.75rem' }}>Patient</th>
+                    <th style={{ padding: '0.75rem' }}>Medicine</th>
+                    <th style={{ padding: '0.75rem' }}>Qty</th>
+                    <th style={{ padding: '0.75rem' }}>Dosage &amp; Duration</th>
                     <th style={{ padding: '0.75rem' }}>Status</th>
                     <th style={{ padding: '0.75rem', textAlign: 'right' }}>Action</th>
                   </tr>
@@ -151,10 +193,14 @@ export const PharmacyPortal: React.FC = () => {
                   {prescriptions.map((rx) => (
                     <tr key={rx.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
                       <td style={{ padding: '0.75rem', fontWeight: 600 }} className="font-mono">#{rx.id}</td>
-                      <td style={{ padding: '0.75rem' }}>Record #{rx.medical_record_id}</td>
-                      <td style={{ padding: '0.75rem' }}>Medicine #{rx.medicine_id}</td>
-                      <td style={{ padding: '0.75rem', fontWeight: 700, color: 'var(--accent-primary)' }}>{rx.quantity}</td>
-                      <td style={{ padding: '0.75rem' }}>{rx.dosage} ({rx.duration})</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                        {rx.patient_name ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Unknown</span>}
+                      </td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                        {rx.medicine_name ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Medicine #{rx.medicine_id}</span>}
+                      </td>
+                      <td style={{ padding: '0.75rem', fontWeight: 700 }}>{rx.quantity}</td>
+                      <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>{rx.dosage} · {rx.duration}</td>
                       <td style={{ padding: '0.75rem' }}>
                         {rx.dispensed ? (
                           <span className="badge badge-emerald">Dispensed</span>
@@ -245,7 +291,7 @@ export const PharmacyPortal: React.FC = () => {
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.75rem' }}>Movement ID</th>
-                  <th style={{ padding: '0.75rem' }}>Medicine ID</th>
+                  <th style={{ padding: '0.75rem' }}>Medicine</th>
                   <th style={{ padding: '0.75rem' }}>Type</th>
                   <th style={{ padding: '0.75rem' }}>Quantity Delta</th>
                   <th style={{ padding: '0.75rem' }}>Before &rarr; After</th>
@@ -253,26 +299,31 @@ export const PharmacyPortal: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {movements.map((mov) => (
-                  <tr key={mov.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
-                    <td style={{ padding: '0.75rem' }} className="font-mono">#{mov.id}</td>
-                    <td style={{ padding: '0.75rem' }}>Medicine #{mov.medicine_id}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span className={`badge ${mov.movement_type === 'dispense' ? 'badge-emerald' : mov.movement_type === 'restock' ? 'badge-cyan' : 'badge-amber'}`}>
-                        {mov.movement_type.toUpperCase()}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem', fontWeight: 600, color: mov.quantity < 0 ? 'var(--accent-danger)' : 'var(--accent-secondary)' }}>
-                      {mov.quantity > 0 ? `+${mov.quantity}` : mov.quantity}
-                    </td>
-                    <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
-                      {mov.stock_before} &rarr; <strong style={{ color: 'var(--text-main)' }}>{mov.stock_after}</strong>
-                    </td>
-                    <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
-                      {new Date(mov.created_at).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
+                {movements.map((mov) => {
+                  const medName = medicines.find((m) => m.id === mov.medicine_id)?.medicine_name;
+                  return (
+                    <tr key={mov.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
+                      <td style={{ padding: '0.75rem' }} className="font-mono">#{mov.id}</td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                        {medName ?? `Medicine #${mov.medicine_id}`}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span className={`badge ${mov.movement_type === 'dispense' ? 'badge-emerald' : mov.movement_type === 'restock' ? 'badge-cyan' : 'badge-amber'}`}>
+                          {mov.movement_type.toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: mov.quantity < 0 ? 'var(--accent-danger)' : 'var(--accent-secondary)' }}>
+                        {mov.quantity > 0 ? `+${mov.quantity}` : mov.quantity}
+                      </td>
+                      <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
+                        {mov.stock_before} &rarr; <strong style={{ color: 'var(--text-main)' }}>{mov.stock_after}</strong>
+                      </td>
+                      <td style={{ padding: '0.75rem', fontSize: '0.75rem', color: 'var(--text-dim)' }}>
+                        {new Date(mov.created_at).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -294,7 +345,12 @@ export const PharmacyPortal: React.FC = () => {
           }}
         >
           <div className="glass-panel" style={{ width: '100%', maxWidth: '420px', padding: '2rem' }}>
-            <h3 style={{ marginBottom: '1rem' }}>Restock Medicine #{restockMedicineId}</h3>
+            <h3 style={{ marginBottom: '0.25rem' }}>
+              Restock: {medicines.find((m) => m.id === restockMedicineId)?.medicine_name ?? `#${restockMedicineId}`}
+            </h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
+              Current stock: <strong>{medicines.find((m) => m.id === restockMedicineId)?.stock ?? '—'}</strong> units
+            </p>
             <form onSubmit={handleRestock}>
               <div className="form-group">
                 <label className="form-label">Units to Add</label>

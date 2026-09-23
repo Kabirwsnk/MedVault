@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.dependencies import get_async_db
 from app.models.medical_record import MedicalRecord
@@ -11,6 +12,15 @@ from app.services.inventory import dispense_prescription as dispense
 from app.utils.roles import ROLE_DOCTOR, ROLE_PHARMACY, require_role
 
 router = APIRouter(prefix="/prescriptions", tags=["Prescriptions"])
+
+
+def _enrich(rx: Prescription) -> PrescriptionResponse:
+    """Build a PrescriptionResponse and attach resolved name fields."""
+    data = PrescriptionResponse.model_validate(rx)
+    data.medicine_name = rx.medicine.medicine_name if rx.medicine else None
+    if rx.medical_record and rx.medical_record.patient:
+        data.patient_name = rx.medical_record.patient.full_name
+    return data
 
 
 @router.post("/{medical_record_id}", response_model=PrescriptionResponse, status_code=201)
@@ -34,38 +44,89 @@ async def create_prescription(
     prescription = Prescription(medical_record_id=record.id, **payload.model_dump())
     db.add(prescription)
     await db.commit()
-    await db.refresh(prescription)
-    return prescription
+
+    # Reload with relationships so the response includes medicine_name / patient_name
+    result = await db.execute(
+        select(Prescription)
+        .where(Prescription.id == prescription.id)
+        .options(
+            selectinload(Prescription.medicine),
+            selectinload(Prescription.medical_record).selectinload(MedicalRecord.patient),
+        )
+    )
+    prescription = result.scalar_one()
+    return _enrich(prescription)
 
 
 @router.get("/dispensed/history", response_model=list[PrescriptionResponse])
-async def dispensing_history(db: AsyncSession = Depends(get_async_db), current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PHARMACY]))):
+async def dispensing_history(
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PHARMACY])),
+):
     result = await db.execute(
         select(Prescription)
         .where(Prescription.dispensed.is_(True))
         .order_by(Prescription.dispensed_at.desc())
+        .options(
+            selectinload(Prescription.medicine),
+            selectinload(Prescription.medical_record).selectinload(MedicalRecord.patient),
+        )
     )
-    return result.scalars().all()
+    return [_enrich(rx) for rx in result.scalars().all()]
 
 
 @router.get("/details/{prescription_id}", response_model=PrescriptionResponse)
-async def get_prescription(prescription_id: int, db: AsyncSession = Depends(get_async_db), current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PHARMACY]))):
+async def get_prescription(
+    prescription_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PHARMACY])),
+):
     result = await db.execute(
-        select(Prescription).where(Prescription.id == prescription_id)
+        select(Prescription)
+        .where(Prescription.id == prescription_id)
+        .options(
+            selectinload(Prescription.medicine),
+            selectinload(Prescription.medical_record).selectinload(MedicalRecord.patient),
+        )
     )
     prescription = result.scalar_one_or_none()
     if not prescription:
         raise HTTPException(status_code=404, detail="Prescription not found.")
-    return prescription
+    return _enrich(prescription)
 
 
 @router.get("/", response_model=list[PrescriptionResponse])
-async def get_all_prescriptions(db: AsyncSession = Depends(get_async_db), current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PHARMACY]))):
-    result = await db.execute(select(Prescription))
-    return result.scalars().all()
+async def get_all_prescriptions(
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(require_role([ROLE_DOCTOR, ROLE_PHARMACY])),
+):
+    result = await db.execute(
+        select(Prescription)
+        .options(
+            selectinload(Prescription.medicine),
+            selectinload(Prescription.medical_record).selectinload(MedicalRecord.patient),
+        )
+        .order_by(Prescription.id.desc())
+    )
+    return [_enrich(rx) for rx in result.scalars().all()]
 
 
 @router.post("/{prescription_id}/dispense", response_model=PrescriptionResponse)
-async def dispense_prescription(prescription_id: int, db: AsyncSession = Depends(get_async_db), current_user=Depends(require_role([ROLE_PHARMACY]))):
+async def dispense_prescription(
+    prescription_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(require_role([ROLE_PHARMACY])),
+):
     # Keep stock mutation and its audit row inside one awaited transaction.
-    return await dispense(db, prescription_id, current_user.id)
+    dispensed = await dispense(db, prescription_id, current_user.id)
+
+    # Reload enriched response after dispense
+    result = await db.execute(
+        select(Prescription)
+        .where(Prescription.id == dispensed.id)
+        .options(
+            selectinload(Prescription.medicine),
+            selectinload(Prescription.medical_record).selectinload(MedicalRecord.patient),
+        )
+    )
+    return _enrich(result.scalar_one())

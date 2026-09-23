@@ -1,8 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
-import { Patient } from '../types';
-import { Stethoscope, Search, Plus, FileText, CheckCircle2, AlertCircle, History, Sparkles, Bot } from 'lucide-react';
-import { ClinicalDraft, deleteClinicalDraft, getClinicalDraft, saveClinicalDraft, syncPendingClinicalDrafts } from '../offlineStore';
+import { Medicine, MedicalRecord, Patient, Prescription } from '../types';
+import {
+  Stethoscope,
+  Search,
+  Plus,
+  FileText,
+  CheckCircle2,
+  AlertCircle,
+  History,
+  Sparkles,
+  Bot,
+  Pill,
+  ClipboardList,
+} from 'lucide-react';
+import {
+  ClinicalDraft,
+  deleteClinicalDraft,
+  getClinicalDraft,
+  saveClinicalDraft,
+  syncPendingClinicalDrafts,
+} from '../offlineStore';
 
 export const DoctorPortal: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -18,8 +36,22 @@ export const DoctorPortal: React.FC = () => {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [draftState, setDraftState] = useState<'saved' | 'draft' | 'pending' | 'conflict'>('saved');
 
+  // --- Structured Prescription State ---
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [lastRecord, setLastRecord] = useState<MedicalRecord | null>(null);
+  const [rxItems, setRxItems] = useState<Prescription[]>([]);
+  const [rxForm, setRxForm] = useState({
+    medicine_id: 0,
+    quantity: 1,
+    dosage: '',
+    duration: '',
+  });
+  const [isAddingRx, setIsAddingRx] = useState(false);
+  const [rxFeedback, setRxFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
   useEffect(() => {
     loadPatients();
+    loadMedicines();
   }, []);
 
   useEffect(() => {
@@ -34,6 +66,7 @@ export const DoctorPortal: React.FC = () => {
     }).catch(() => undefined);
   }, [selectedPatient?.beneficiary_id]);
 
+  // Auto-save draft while typing
   useEffect(() => {
     if (!selectedPatient || (!diagnosis && !prescriptionText && !notes)) return;
     const timer = window.setTimeout(() => {
@@ -51,6 +84,7 @@ export const DoctorPortal: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [selectedPatient?.beneficiary_id, diagnosis, prescriptionText, notes]);
 
+  // Sync pending drafts on reconnect
   useEffect(() => {
     const syncDrafts = async () => {
       if (!navigator.onLine) return;
@@ -81,6 +115,15 @@ export const DoctorPortal: React.FC = () => {
     }
   };
 
+  const loadMedicines = async () => {
+    try {
+      const data = await api.getMedicines();
+      setMedicines(data);
+    } catch {
+      // non-critical; prescription picker will be empty
+    }
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) {
@@ -98,13 +141,24 @@ export const DoctorPortal: React.FC = () => {
   const selectPatient = async (patient: Patient) => {
     setSelectedPatient(patient);
     setAiSummary(null);
+    resetEncounterForm();
     try {
       const timeline = await api.getPatientTimeline(patient.beneficiary_id);
       setPatientTimeline(timeline);
-    } catch (err: any) {
-      console.error('Timeline error:', err);
+    } catch {
       setPatientTimeline([]);
     }
+  };
+
+  const resetEncounterForm = () => {
+    setLastRecord(null);
+    setRxItems([]);
+    setRxFeedback(null);
+    setDiagnosis('');
+    setPrescriptionText('');
+    setNotes('');
+    setDraftState('saved');
+    setRxForm({ medicine_id: 0, quantity: 1, dosage: '', duration: '' });
   };
 
   const handleCreateRecord = async (e: React.FormEvent) => {
@@ -115,18 +169,20 @@ export const DoctorPortal: React.FC = () => {
 
     try {
       const idempotencyKey = crypto.randomUUID();
-      await api.createMedicalRecord(selectedPatient.beneficiary_id, {
+      const record = await api.createMedicalRecord(selectedPatient.beneficiary_id, {
         diagnosis,
         prescription: prescriptionText,
         notes: notes || undefined,
       }, idempotencyKey);
+
       await deleteClinicalDraft(`encounter:${selectedPatient.beneficiary_id}`);
       setDraftState('saved');
-      setFeedback({ type: 'success', message: 'Medical encounter recorded successfully!' });
-      setDiagnosis('');
-      setPrescriptionText('');
-      setNotes('');
-      // refresh timeline
+      setLastRecord(record);
+      setRxItems([]);
+      setRxForm({ medicine_id: medicines[0]?.id ?? 0, quantity: 1, dosage: '', duration: '' });
+      setFeedback({ type: 'success', message: 'Medical encounter recorded. Add structured prescription items below to dispatch to pharmacy.' });
+
+      // Refresh timeline
       const timeline = await api.getPatientTimeline(selectedPatient.beneficiary_id);
       setPatientTimeline(timeline);
     } catch (err: any) {
@@ -151,13 +207,38 @@ export const DoctorPortal: React.FC = () => {
     }
   };
 
+  const handleAddRxItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!lastRecord || !rxForm.medicine_id) return;
+    setIsAddingRx(true);
+    setRxFeedback(null);
+
+    try {
+      const newRx = await api.createPrescription(lastRecord.id, {
+        medicine_id: rxForm.medicine_id,
+        quantity: rxForm.quantity,
+        dosage: rxForm.dosage,
+        duration: rxForm.duration,
+      });
+      setRxItems((prev) => [...prev, newRx]);
+      const med = medicines.find((m) => m.id === rxForm.medicine_id);
+      setRxFeedback({ type: 'success', message: `Added: ${med?.medicine_name ?? 'Medicine'} — dispatched to pharmacy queue.` });
+      // Reset item form but keep medicine selected for convenience
+      setRxForm((f) => ({ ...f, quantity: 1, dosage: '', duration: '' }));
+    } catch (err: any) {
+      setRxFeedback({ type: 'error', message: err.message || 'Failed to add prescription item' });
+    } finally {
+      setIsAddingRx(false);
+    }
+  };
+
   const fetchAiSummary = async () => {
     if (!selectedPatient) return;
     setIsLoadingSummary(true);
     try {
       const res = await api.getAISummary(selectedPatient.beneficiary_id);
       setAiSummary(res.summary);
-    } catch (err: any) {
+    } catch {
       setAiSummary('AI Summary is temporarily unavailable.');
     } finally {
       setIsLoadingSummary(false);
@@ -298,72 +379,216 @@ export const DoctorPortal: React.FC = () => {
               </div>
             )}
 
-            {/* New Encounter Form */}
-            <div className="glass-panel" style={{ padding: '1.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                <Plus size={18} color="var(--accent-primary)" />
-                <h4 style={{ fontSize: '1.0625rem' }}>Record Clinical Encounter</h4>
+            {/* ── STEP 1: New Encounter Form ── */}
+            {!lastRecord && (
+              <div className="glass-panel" style={{ padding: '1.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                  <Plus size={18} color="var(--accent-primary)" />
+                  <h4 style={{ fontSize: '1.0625rem' }}>Record Clinical Encounter</h4>
+                </div>
+
+                <form onSubmit={handleCreateRecord}>
+                  <div className="form-group">
+                    <label className="form-label">Clinical Diagnosis *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Acute Viral Bronchitis / Stage 1 Hypertension"
+                      className="form-input"
+                      value={diagnosis}
+                      onChange={(e) => setDiagnosis(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Prescription Summary (clinical notes for record) *</label>
+                    <textarea
+                      required
+                      rows={3}
+                      placeholder="e.g. Tab Amoxicillin 500mg TDS x 5 days, Paracetamol 650mg SOS"
+                      className="form-textarea"
+                      value={prescriptionText}
+                      onChange={(e) => setPrescriptionText(e.target.value)}
+                    />
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
+                      Free-text clinical summary. Add structured pharmacy-dispatchable items in Step 2 after saving.
+                    </p>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Clinical Notes &amp; Observations (Optional)</label>
+                    <textarea
+                      rows={2}
+                      placeholder="Patient reports productive cough, chest clear on auscultation..."
+                      className="form-textarea"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                    <button
+                      type="submit"
+                      disabled={isSubmittingRecord}
+                      className="btn btn-primary"
+                    >
+                      <FileText size={16} />
+                      <span>{isSubmittingRecord ? 'Saving Encounter...' : 'Submit Encounter Record'}</span>
+                    </button>
+                    <span style={{ fontSize: '0.75rem', color: draftState === 'conflict' ? 'var(--accent-danger)' : 'var(--text-muted)' }}>
+                      {draftState === 'draft' && 'Draft saved locally'}
+                      {draftState === 'pending' && 'Pending synchronization'}
+                      {draftState === 'conflict' && 'Sync conflict requires review'}
+                    </span>
+                  </div>
+                </form>
               </div>
+            )}
 
-              <form onSubmit={handleCreateRecord}>
-                <div className="form-group">
-                  <label className="form-label">Clinical Diagnosis *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Acute Viral Bronchitis / Stage 1 Hypertension"
-                    className="form-input"
-                    value={diagnosis}
-                    onChange={(e) => setDiagnosis(e.target.value)}
-                  />
+            {/* ── STEP 2: Structured Prescription Items ── */}
+            {lastRecord && (
+              <div className="glass-panel animate-fade-in" style={{ padding: '1.75rem', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <ClipboardList size={18} color="var(--accent-secondary)" />
+                    <h4 style={{ fontSize: '1.0625rem' }}>Dispatch Prescriptions to Pharmacy</h4>
+                    <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>Record #{lastRecord.id} saved</span>
+                  </div>
+                  <button
+                    onClick={resetEncounterForm}
+                    className="btn btn-outline"
+                    style={{ fontSize: '0.8125rem' }}
+                  >
+                    New Encounter
+                  </button>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Prescription (Text instructions) *</label>
-                  <textarea
-                    required
-                    rows={3}
-                    placeholder="e.g. Tab Amoxicillin 500mg TDS x 5 days, Paracetamol 650mg SOS"
-                    className="form-textarea"
-                    value={prescriptionText}
-                    onChange={(e) => setPrescriptionText(e.target.value)}
-                  />
-                </div>
+                {rxFeedback && (
+                  <div className={`alert ${rxFeedback.type === 'success' ? 'alert-success' : 'alert-error'} animate-fade-in`} style={{ marginBottom: '1rem' }}>
+                    {rxFeedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                    <span style={{ fontSize: '0.875rem' }}>{rxFeedback.message}</span>
+                  </div>
+                )}
 
-                <div className="form-group">
-                  <label className="form-label">Clinical Notes & Observations (Optional)</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Patient reports productive cough, chest clear on auscultation..."
-                    className="form-textarea"
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </div>
+                {/* Added items list */}
+                {rxItems.length > 0 && (
+                  <div style={{ marginBottom: '1.25rem' }}>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>
+                      Dispatched Items ({rxItems.length})
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                      {rxItems.map((rx) => {
+                        const med = medicines.find((m) => m.id === rx.medicine_id);
+                        return (
+                          <div
+                            key={rx.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.75rem',
+                              padding: '0.625rem 1rem',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'rgba(16, 185, 129, 0.08)',
+                              border: '1px solid rgba(16, 185, 129, 0.2)',
+                              fontSize: '0.875rem',
+                            }}
+                          >
+                            <Pill size={14} color="var(--accent-secondary)" style={{ flexShrink: 0 }} />
+                            <span style={{ fontWeight: 600, color: 'var(--text-main)', flex: 1 }}>
+                              {rx.medicine_name ?? med?.medicine_name ?? `Medicine #${rx.medicine_id}`}
+                            </span>
+                            <span style={{ color: 'var(--text-muted)' }}>×{rx.quantity}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>{rx.dosage}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>{rx.duration}</span>
+                            <CheckCircle2 size={14} color="var(--accent-secondary)" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
-                <button
-                  type="submit"
-                  disabled={isSubmittingRecord}
-                  className="btn btn-primary"
-                >
-                  <FileText size={16} />
-                  <span>{isSubmittingRecord ? 'Saving Encounter...' : 'Submit Encounter Record'}</span>
-                </button>
-                <span style={{ fontSize: '0.75rem', color: draftState === 'conflict' ? 'var(--accent-danger)' : 'var(--text-muted)' }}>
-                  {draftState === 'draft' && 'Draft saved locally'}
-                  {draftState === 'pending' && 'Pending synchronization'}
-                  {draftState === 'conflict' && 'Sync conflict requires review'}
-                </span>
-                </div>
-              </form>
-            </div>
+                {/* Add prescription item form */}
+                <form onSubmit={handleAddRxItem}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto auto', gap: '0.75rem', alignItems: 'end' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Medicine *</label>
+                      <select
+                        required
+                        className="form-input"
+                        value={rxForm.medicine_id || ''}
+                        onChange={(e) => setRxForm((f) => ({ ...f, medicine_id: parseInt(e.target.value) }))}
+                      >
+                        <option value="">Select medicine…</option>
+                        {medicines.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.medicine_name} ({m.unit}) — {m.stock} in stock
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0, minWidth: '72px' }}>
+                      <label className="form-label">Qty *</label>
+                      <input
+                        type="number"
+                        required
+                        min={1}
+                        className="form-input"
+                        value={rxForm.quantity}
+                        onChange={(e) => setRxForm((f) => ({ ...f, quantity: parseInt(e.target.value) || 1 }))}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0, minWidth: '140px' }}>
+                      <label className="form-label">Dosage *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 1 tab TID"
+                        className="form-input"
+                        value={rxForm.dosage}
+                        onChange={(e) => setRxForm((f) => ({ ...f, dosage: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="form-group" style={{ margin: 0, minWidth: '110px' }}>
+                      <label className="form-label">Duration *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. 5 days"
+                        className="form-input"
+                        value={rxForm.duration}
+                        onChange={(e) => setRxForm((f) => ({ ...f, duration: e.target.value }))}
+                      />
+                    </div>
+
+                    <div style={{ paddingBottom: '0px' }}>
+                      <button
+                        type="submit"
+                        disabled={isAddingRx || !rxForm.medicine_id}
+                        className="btn btn-emerald"
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        <Plus size={15} />
+                        <span>{isAddingRx ? 'Adding...' : 'Add Item'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.75rem' }}>
+                  Each item creates a pharmacy-dispatchable prescription row. The pharmacist will see it in the dispensing queue.
+                </p>
+              </div>
+            )}
 
             {/* Longitudinal Timeline */}
             <div className="glass-panel" style={{ padding: '1.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
                 <History size={18} color="var(--accent-secondary)" />
-                <h4 style={{ fontSize: '1.0625rem' }}>Longitudinal History & Past Records</h4>
+                <h4 style={{ fontSize: '1.0625rem' }}>Longitudinal History &amp; Past Records</h4>
               </div>
 
               {patientTimeline.length === 0 ? (
@@ -389,8 +614,8 @@ export const DoctorPortal: React.FC = () => {
                           {new Date(rec.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      <p style={{ fontSize: '0.875rem', color: '#cbd5e1', marginBottom: '0.5rem' }}>
-                        <strong>Rx:</strong> {rec.prescription}
+                      <p style={{ fontSize: '0.875rem', color: '#cbd5e1', marginBottom: rec.notes ? '0.5rem' : 0 }}>
+                        <strong>Rx summary:</strong> {rec.prescription}
                       </p>
                       {rec.notes && (
                         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>

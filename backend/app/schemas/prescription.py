@@ -12,11 +12,14 @@ class PrescriptionCreate(BaseModel):
 
 class PrescriptionResponse(BaseModel):
     id: int
+    medical_record_id: int
     medicine_id: int
+    medicine_name: Optional[str] = None
+    patient_name: Optional[str] = None
     quantity: int
     dosage: str
     duration: str
-    
+
     dispensed: bool
     dispensed_at: Optional[datetime] = None
 
