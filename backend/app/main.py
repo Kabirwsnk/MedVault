@@ -33,11 +33,25 @@ from app.routers.pharmacy_dashboard import router as pharmacy_dashboard_router
 from app.routers.patient_dashboard import router as patient_dashboard_router
 from app.routers.health import router as health_router
 
-app = FastAPI(title="MedVault AI", version="1.0.0")
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+from contextlib import asynccontextmanager
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure tables and seed demo accounts idempotently on boot
+    try:
+        from app.manage import seed_demo
+        seed_demo(ensure_tables=True)
+    except Exception as exc:
+        logger.warning("Startup demo seed check: %s", exc)
+    yield
+
+
+app = FastAPI(title="MedVault AI", version="1.0.0", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 
 @app.exception_handler(IntegrityError)

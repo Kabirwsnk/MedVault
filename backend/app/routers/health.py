@@ -20,3 +20,14 @@ async def health_check():
         )
 
     return {"status": "ok", "database": "available"}
+
+
+@router.get("/health/seed")
+async def seed_endpoint():
+    """Idempotently seed demo accounts and catalog into the connected database."""
+    try:
+        from app.manage import seed_demo
+        seed_demo(ensure_tables=True)
+        return {"status": "ok", "message": "Demo data successfully seeded"}
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"status": "error", "detail": str(exc)})
