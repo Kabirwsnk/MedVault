@@ -522,7 +522,7 @@ export const DoctorPortal: React.FC = () => {
                         <option value="">Select medicine…</option>
                         {medicines.map((m) => (
                           <option key={m.id} value={m.id}>
-                            {m.medicine_name} ({m.unit}) — {m.stock} in stock
+                            {m.medicine_name} {m.strength ? `(${m.strength}${m.dosage_form ? ` • ${m.dosage_form}` : ''})` : ''} ({m.unit}) — {m.stock} in stock
                           </option>
                         ))}
                       </select>

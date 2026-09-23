@@ -27,6 +27,7 @@ from app.utils.security import hash_password
 class SecurityAndDispensingTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        Base.metadata.drop_all(engine)
         Base.metadata.create_all(engine)
 
     def setUp(self):

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -6,6 +7,8 @@ class MedicineCreate(BaseModel):
     medicine_name: str
     manufacturer: str
     unit: str
+    strength: Optional[str] = None
+    dosage_form: Optional[str] = None
     stock: int = Field(ge=0)
 
 
@@ -14,6 +17,8 @@ class MedicineResponse(BaseModel):
     medicine_name: str
     manufacturer: str
     unit: str
+    strength: Optional[str] = None
+    dosage_form: Optional[str] = None
     stock: int
 
     class Config:
@@ -23,6 +28,8 @@ class MedicineResponse(BaseModel):
 class MedicineUpdate(BaseModel):
     manufacturer: str
     unit: str
+    strength: Optional[str] = None
+    dosage_form: Optional[str] = None
     stock: int
 
 

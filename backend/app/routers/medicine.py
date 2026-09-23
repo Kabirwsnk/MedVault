@@ -57,6 +57,8 @@ async def add_medicine(
         medicine_name=medicine.medicine_name,
         manufacturer=medicine.manufacturer,
         unit=medicine.unit,
+        strength=medicine.strength,
+        dosage_form=medicine.dosage_form,
         stock=medicine.stock
     )
 
@@ -246,6 +248,8 @@ async def update_medicine(
     stock_before = medicine.stock
     medicine.manufacturer = updated_data.manufacturer
     medicine.unit = updated_data.unit
+    medicine.strength = updated_data.strength
+    medicine.dosage_form = updated_data.dosage_form
     medicine.stock = updated_data.stock
 
     if medicine.stock != stock_before:

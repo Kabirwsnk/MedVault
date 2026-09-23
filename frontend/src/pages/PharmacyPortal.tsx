@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { Medicine, Prescription, InventoryMovement } from '../types';
-import { Pill, CheckCircle2, AlertCircle, RefreshCw, PackagePlus, ArrowDownUp, AlertTriangle, X } from 'lucide-react';
+import { Pill, CheckCircle2, AlertCircle, RefreshCw, PackagePlus, ArrowDownUp, AlertTriangle, X, Plus } from 'lucide-react';
 
 export const PharmacyPortal: React.FC = () => {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
@@ -14,6 +14,18 @@ export const PharmacyPortal: React.FC = () => {
   const [restockMedicineId, setRestockMedicineId] = useState<number | null>(null);
   const [restockQty, setRestockQty] = useState<number>(50);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Add Medicine Modal State
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newMed, setNewMed] = useState({
+    medicine_name: '',
+    strength: '',
+    dosage_form: 'Tablet',
+    manufacturer: '',
+    unit: 'Strip of 10',
+    stock: 100,
+  });
+  const [isAddingMed, setIsAddingMed] = useState(false);
 
   useEffect(() => {
     loadAllData();
@@ -67,6 +79,38 @@ export const PharmacyPortal: React.FC = () => {
     }
   };
 
+  const handleAddMedicine = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAddingMed(true);
+    setFeedback(null);
+
+    try {
+      await api.addMedicine({
+        medicine_name: newMed.medicine_name.trim(),
+        strength: newMed.strength.trim() || undefined,
+        dosage_form: newMed.dosage_form.trim() || undefined,
+        manufacturer: newMed.manufacturer.trim(),
+        unit: newMed.unit.trim(),
+        stock: Number(newMed.stock),
+      });
+      setFeedback({ type: 'success', message: `Medicine "${newMed.medicine_name}" added to catalog!` });
+      setShowAddModal(false);
+      setNewMed({
+        medicine_name: '',
+        strength: '',
+        dosage_form: 'Tablet',
+        manufacturer: '',
+        unit: 'Strip of 10',
+        stock: 100,
+      });
+      await loadAllData();
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message || 'Failed to add medicine' });
+    } finally {
+      setIsAddingMed(false);
+    }
+  };
+
   const pendingCount = prescriptions.filter((p) => !p.dispensed).length;
 
   return (
@@ -104,86 +148,138 @@ export const PharmacyPortal: React.FC = () => {
       {/* Critical Stock Alert Banner */}
       {criticalMeds.length > 0 && !alertDismissed && (
         <div
-          className="animate-fade-in"
           style={{
             display: 'flex',
-            alignItems: 'flex-start',
-            gap: '0.75rem',
-            padding: '1rem 1.25rem',
-            marginBottom: '1.25rem',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0.875rem 1.25rem',
             borderRadius: 'var(--radius-md)',
             background: 'rgba(239, 68, 68, 0.12)',
-            border: '1px solid rgba(239, 68, 68, 0.4)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            marginBottom: '1.5rem',
+            gap: '1rem',
           }}
+          className="animate-fade-in"
         >
-          <AlertTriangle size={20} color="#f87171" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-          <div style={{ flex: 1 }}>
-            <p style={{ fontWeight: 700, color: '#f87171', fontSize: '0.9375rem', marginBottom: '0.25rem' }}>
-              {criticalMeds.length} medicine{criticalMeds.length > 1 ? 's' : ''} critically low — restock immediately
-            </p>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-              {criticalMeds.map((m) => `${m.medicine_name} (${m.stock} left)`).join(' · ')}
-            </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
+            <AlertTriangle size={20} color="var(--accent-danger)" style={{ flexShrink: 0 }} />
+            <div>
+              <strong style={{ color: 'var(--accent-danger)', fontSize: '0.9375rem' }}>
+                Critical Stock Alert ({criticalMeds.length} items low)
+              </strong>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: 0 }}>
+                {criticalMeds.map((m) => `${m.medicine_name} (${m.stock} left)`).join(' · ')}
+              </p>
+            </div>
           </div>
-          <button
-            onClick={() => setAlertDismissed(true)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', padding: '0.1rem' }}
-            aria-label="Dismiss alert"
-          >
-            <X size={16} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className="btn btn-secondary"
+              style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+            >
+              Restock Now
+            </button>
+            <button
+              onClick={() => setAlertDismissed(true)}
+              style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '0.25rem' }}
+              title="Dismiss alert"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
       )}
 
-      {feedback && (
-        <div className={`alert ${feedback.type === 'success' ? 'alert-success' : 'alert-error'} animate-fade-in`}>
-          {feedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-          <span>{feedback.message}</span>
+      {/* Stat Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Prescriptions Pending</p>
+          <p style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: pendingCount > 0 ? 'var(--accent-warning)' : 'var(--accent-secondary)' }}>
+            {pendingCount}
+          </p>
         </div>
-      )}
+        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Catalog Medicines</p>
+          <p style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-main)' }}>
+            {medicines.length}
+          </p>
+        </div>
+        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Critical Stock Items</p>
+          <p style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: criticalMeds.length > 0 ? 'var(--accent-danger)' : 'var(--text-muted)' }}>
+            {criticalMeds.length}
+          </p>
+        </div>
+        <div className="glass-panel" style={{ padding: '1.25rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Audit Movements</p>
+          <p style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '0.25rem', color: 'var(--text-dim)' }}>
+            {movements.length}
+          </p>
+        </div>
+      </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.5rem' }}>
         <button
           onClick={() => setActiveTab('queue')}
-          className={`btn ${activeTab === 'queue' ? 'btn-primary' : 'btn-outline'}`}
-          style={{ fontSize: '0.8125rem', padding: '0.4rem 1rem' }}
+          className={`btn ${activeTab === 'queue' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ fontSize: '0.8125rem' }}
         >
-          Prescription Queue ({pendingCount} pending)
+          Prescription Queue {pendingCount > 0 && <span className="badge badge-amber" style={{ marginLeft: '0.35rem' }}>{pendingCount}</span>}
         </button>
         <button
           onClick={() => setActiveTab('inventory')}
-          className={`btn ${activeTab === 'inventory' ? 'btn-emerald' : 'btn-outline'}`}
-          style={{ fontSize: '0.8125rem', padding: '0.4rem 1rem' }}
+          className={`btn ${activeTab === 'inventory' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ fontSize: '0.8125rem' }}
         >
-          Medicine Stock ({medicines.length} items)
+          Medicine Catalog &amp; Stock
         </button>
         <button
           onClick={() => setActiveTab('movements')}
-          className={`btn ${activeTab === 'movements' ? 'btn-secondary' : 'btn-outline'}`}
-          style={{ fontSize: '0.8125rem', padding: '0.4rem 1rem' }}
+          className={`btn ${activeTab === 'movements' ? 'btn-primary' : 'btn-secondary'}`}
+          style={{ fontSize: '0.8125rem' }}
         >
-          Audit Movements ({movements.length} logs)
+          Movement Audit Ledger
         </button>
       </div>
 
-      {/* Prescription Queue Tab */}
+      {/* Feedback banner */}
+      {feedback && (
+        <div
+          style={{
+            padding: '0.75rem 1rem',
+            borderRadius: 'var(--radius-md)',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            background: feedback.type === 'success' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+            border: `1px solid ${feedback.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+            color: feedback.type === 'success' ? 'var(--accent-secondary)' : 'var(--accent-danger)',
+            fontSize: '0.875rem',
+          }}
+        >
+          {feedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+          <span>{feedback.message}</span>
+        </div>
+      )}
+
+      {/* Queue Tab */}
       {activeTab === 'queue' && (
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>Active Prescriptions</h3>
+          <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>Prescriptions Pending Fulfillment</h3>
           {prescriptions.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--text-muted)' }}>
-              No prescription orders found in queue.
-            </div>
+            <p style={{ color: 'var(--text-dim)', textAlign: 'center', padding: '2rem 0' }}>No prescriptions in queue.</p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '0.75rem' }}>Rx ID</th>
+                    <th style={{ padding: '0.75rem' }}>Rx #</th>
                     <th style={{ padding: '0.75rem' }}>Patient</th>
                     <th style={{ padding: '0.75rem' }}>Medicine</th>
-                    <th style={{ padding: '0.75rem' }}>Qty</th>
+                    <th style={{ padding: '0.75rem' }}>Quantity</th>
                     <th style={{ padding: '0.75rem' }}>Dosage &amp; Duration</th>
                     <th style={{ padding: '0.75rem' }}>Status</th>
                     <th style={{ padding: '0.75rem', textAlign: 'right' }}>Action</th>
@@ -192,11 +288,11 @@ export const PharmacyPortal: React.FC = () => {
                 <tbody>
                   {prescriptions.map((rx) => (
                     <tr key={rx.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
-                      <td style={{ padding: '0.75rem', fontWeight: 600 }} className="font-mono">#{rx.id}</td>
+                      <td style={{ padding: '0.75rem' }} className="font-mono">#{rx.id}</td>
                       <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                        {rx.patient_name ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Unknown</span>}
+                        {rx.patient_name ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Encounter #{rx.medical_record_id}</span>}
                       </td>
-                      <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                      <td style={{ padding: '0.75rem', color: 'var(--text-main)', fontWeight: 500 }}>
                         {rx.medicine_name ?? <span style={{ color: 'var(--text-dim)', fontStyle: 'italic' }}>Medicine #{rx.medicine_id}</span>}
                       </td>
                       <td style={{ padding: '0.75rem', fontWeight: 700 }}>{rx.quantity}</td>
@@ -232,13 +328,30 @@ export const PharmacyPortal: React.FC = () => {
       {/* Inventory Tab */}
       {activeTab === 'inventory' && (
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.125rem', marginBottom: '1rem' }}>Medicine Stock Catalog</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.125rem' }}>Medicine Stock Catalog</h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', margin: 0 }}>
+                Inventory catalog with dosage strengths and formulation classification.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn btn-primary"
+              style={{ fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Plus size={15} />
+              <span>Add Medicine</span>
+            </button>
+          </div>
+
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-subtle)', textAlign: 'left', color: 'var(--text-muted)' }}>
                   <th style={{ padding: '0.75rem' }}>ID</th>
                   <th style={{ padding: '0.75rem' }}>Medicine Name</th>
+                  <th style={{ padding: '0.75rem' }}>Strength &amp; Form</th>
                   <th style={{ padding: '0.75rem' }}>Manufacturer</th>
                   <th style={{ padding: '0.75rem' }}>Unit</th>
                   <th style={{ padding: '0.75rem' }}>Current Stock</th>
@@ -253,6 +366,16 @@ export const PharmacyPortal: React.FC = () => {
                     <tr key={med.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
                       <td style={{ padding: '0.75rem' }} className="font-mono">#{med.id}</td>
                       <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>{med.medicine_name}</td>
+                      <td style={{ padding: '0.75rem' }}>
+                        {med.strength || med.dosage_form ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                            {med.strength && <span className="badge badge-cyan">{med.strength}</span>}
+                            {med.dosage_form && <span className="badge badge-purple">{med.dosage_form}</span>}
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-dim)', fontSize: '0.8125rem' }}>—</span>
+                        )}
+                      </td>
                       <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>{med.manufacturer}</td>
                       <td style={{ padding: '0.75rem' }}>{med.unit}</td>
                       <td style={{ padding: '0.75rem' }}>
@@ -300,12 +423,13 @@ export const PharmacyPortal: React.FC = () => {
               </thead>
               <tbody>
                 {movements.map((mov) => {
-                  const medName = medicines.find((m) => m.id === mov.medicine_id)?.medicine_name;
+                  const med = medicines.find((m) => m.id === mov.medicine_id);
+                  const medDisplay = med ? `${med.medicine_name}${med.strength ? ` (${med.strength})` : ''}` : `Medicine #${mov.medicine_id}`;
                   return (
                     <tr key={mov.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.08)' }}>
                       <td style={{ padding: '0.75rem' }} className="font-mono">#{mov.id}</td>
                       <td style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                        {medName ?? `Medicine #${mov.medicine_id}`}
+                        {medDisplay}
                       </td>
                       <td style={{ padding: '0.75rem' }}>
                         <span className={`badge ${mov.movement_type === 'dispense' ? 'badge-emerald' : mov.movement_type === 'restock' ? 'badge-cyan' : 'badge-amber'}`}>
@@ -370,6 +494,136 @@ export const PharmacyPortal: React.FC = () => {
                 </button>
                 <button type="submit" className="btn btn-emerald" style={{ flex: 1 }}>
                   Confirm Restock
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Medicine Modal */}
+      {showAddModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.7)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+          }}
+        >
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '480px', padding: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.25rem' }}>Add Medicine to Catalog</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddMedicine} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Medicine Trade Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Amoxicillin Trihydrate"
+                  className="form-input"
+                  value={newMed.medicine_name}
+                  onChange={(e) => setNewMed({ ...newMed, medicine_name: e.target.value })}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Strength</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 500mg, 10mg/5ml"
+                    className="form-input"
+                    value={newMed.strength}
+                    onChange={(e) => setNewMed({ ...newMed, strength: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Dosage Form</label>
+                  <select
+                    className="form-input"
+                    value={newMed.dosage_form}
+                    onChange={(e) => setNewMed({ ...newMed, dosage_form: e.target.value })}
+                  >
+                    <option value="Tablet">Tablet</option>
+                    <option value="Capsule">Capsule</option>
+                    <option value="Syrup">Syrup</option>
+                    <option value="Injection">Injection</option>
+                    <option value="Ointment">Ointment</option>
+                    <option value="Drops">Drops</option>
+                    <option value="Inhaler">Inhaler</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Manufacturer *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Cipla Ltd"
+                    className="form-input"
+                    value={newMed.manufacturer}
+                    onChange={(e) => setNewMed({ ...newMed, manufacturer: e.target.value })}
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Unit / Packaging *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Strip of 10"
+                    className="form-input"
+                    value={newMed.unit}
+                    onChange={(e) => setNewMed({ ...newMed, unit: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">Initial Stock Quantity *</label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  className="form-input"
+                  value={newMed.stock}
+                  onChange={(e) => setNewMed({ ...newMed, stock: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAddingMed}
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                >
+                  {isAddingMed ? 'Adding...' : 'Add Medicine'}
                 </button>
               </div>
             </form>

@@ -63,13 +63,13 @@ def seed_demo(ensure_tables: bool = False) -> bool:
 
         if db.query(Medicine).count() == 0:
             medicines = [
-                Medicine(medicine_name="Amoxicillin 500mg", manufacturer="Cipla Ltd", unit="Strip of 10", stock=150),
-                Medicine(medicine_name="Paracetamol 650mg", manufacturer="Micro Labs", unit="Strip of 15", stock=200),
-                Medicine(medicine_name="Metformin 500mg", manufacturer="Sun Pharma", unit="Strip of 10", stock=85),
-                Medicine(medicine_name="Azithromycin 250mg", manufacturer="Lupin", unit="Strip of 6", stock=40),
-                Medicine(medicine_name="Omeprazole 20mg", manufacturer="Dr. Reddy's", unit="Strip of 14", stock=120),
-                Medicine(medicine_name="Cetirizine 10mg", manufacturer="Alkem", unit="Strip of 10", stock=15),
-                Medicine(medicine_name="Atorvastatin 10mg", manufacturer="Zydus", unit="Strip of 10", stock=8),
+                Medicine(medicine_name="Amoxicillin 500mg", manufacturer="Cipla Ltd", unit="Strip of 10", strength="500mg", dosage_form="Capsule", stock=150),
+                Medicine(medicine_name="Paracetamol 650mg", manufacturer="Micro Labs", unit="Strip of 15", strength="650mg", dosage_form="Tablet", stock=200),
+                Medicine(medicine_name="Metformin 500mg", manufacturer="Sun Pharma", unit="Strip of 10", strength="500mg", dosage_form="Tablet", stock=85),
+                Medicine(medicine_name="Azithromycin 250mg", manufacturer="Lupin", unit="Strip of 6", strength="250mg", dosage_form="Tablet", stock=40),
+                Medicine(medicine_name="Omeprazole 20mg", manufacturer="Dr. Reddy's", unit="Strip of 14", strength="20mg", dosage_form="Capsule", stock=120),
+                Medicine(medicine_name="Cetirizine 10mg", manufacturer="Alkem", unit="Strip of 10", strength="10mg", dosage_form="Tablet", stock=15),
+                Medicine(medicine_name="Atorvastatin 10mg", manufacturer="Zydus", unit="Strip of 10", strength="10mg", dosage_form="Tablet", stock=8),
             ]
             db.add_all(medicines)
             print(f"Seeded {len(medicines)} essential medicines.")

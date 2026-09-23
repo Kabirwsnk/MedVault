@@ -33,6 +33,16 @@ class Medicine(Base):
         nullable=False
     )
 
+    strength = Column(
+        String(100),
+        nullable=True
+    )
+
+    dosage_form = Column(
+        String(100),
+        nullable=True
+    )
+
     stock = Column(
         Integer,
         nullable=False,

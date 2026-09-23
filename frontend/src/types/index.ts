@@ -76,6 +76,8 @@ export interface Medicine {
   medicine_name: string;
   manufacturer: string;
   unit: string;
+  strength?: string | null;
+  dosage_form?: string | null;
   stock: number;
   created_at: string;
 }

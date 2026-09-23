@@ -2,7 +2,7 @@
 set -e
 
 echo "==> Running Alembic migrations..."
-alembic upgrade head
+python -m alembic upgrade head
 
 echo "==> Seeding demo data (idempotent)..."
 python -m app.manage seed-demo

@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect width="1000" height="580" fill="url(#bgGrad)" rx="14"/>
+
+  <!-- Top App Navigation Bar -->
+  <rect x="0" y="0" width="1000" height="60" fill="#0f172a" fill-opacity="0.9" rx="14 14 0 0"/>
+  <line x1="0" y1="60" x2="1000" y2="60" stroke="#334155" stroke-opacity="0.5"/>
+  <circle cx="28" cy="30" r="14" fill="#06b6d4" fill-opacity="0.2"/>
+  <path d="M28 22v16M20 30h16" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="52" y="36" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="17" font-weight="700">MedVault</text>
+  <rect x="136" y="21" width="112" height="20" rx="10" fill="#3b82f6" fill-opacity="0.15" stroke="#3b82f6" stroke-opacity="0.3"/>
+  <text x="146" y="35" fill="#60a5fa" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10.5" font-weight="600">DOCTOR STATION</text>
+
+  <!-- Online Indicators -->
+  <circle cx="810" cy="30" r="4.5" fill="#10b981"/>
+  <text x="822" y="34" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">Server Online</text>
+  <rect x="912" y="16" width="70" height="28" rx="6" fill="#1e293b" stroke="#334155"/>
+  <text x="926" y="34" fill="#e2e8f0" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5" font-weight="500">Dr. Sarah</text>
+
+  <!-- Left Sidebar: Patient Clinical Queue -->
+  <rect x="24" y="80" width="280" height="476" rx="10" fill="url(#cardGrad)" stroke="#334155" stroke-opacity="0.6"/>
+  <text x="42" y="112" fill="#f1f5f9" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="14" font-weight="700">Patient Queue</text>
+  <rect x="242" y="99" width="46" height="18" rx="9" fill="#0ea5e9" fill-opacity="0.15"/>
+  <text x="252" y="112" fill="#38bdf8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10.5" font-weight="600">3 Active</text>
+
+  <!-- Search input -->
+  <rect x="40" y="130" width="248" height="32" rx="6" fill="#0f172a" stroke="#334155"/>
+  <text x="52" y="151" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">Search Beneficiary ID / Name...</text>
+
+  <!-- Patient Card 1 (Selected) -->
+  <rect x="40" y="176" width="248" height="74" rx="8" fill="#1e293b" stroke="#0ea5e9" stroke-width="1.5"/>
+  <circle cx="64" cy="204" r="14" fill="#0ea5e9" fill-opacity="0.2"/>
+  <text x="60" y="209" fill="#38bdf8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="700">AS</text>
+  <text x="88" y="200" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="600">Aarav Sharma</text>
+  <text x="88" y="218" fill="#94a3b8" font-family="monospace" font-size="11">MV260001 · 38M · B+</text>
+  <rect x="88" y="226" width="70" height="15" rx="3" fill="#10b981" fill-opacity="0.15"/>
+  <text x="94" y="237" fill="#34d399" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="9" font-weight="600">IN ENCOUNTER</text>
+
+  <!-- Patient Card 2 -->
+  <rect x="40" y="260" width="248" height="66" rx="8" fill="#0f172a" stroke="#1e293b"/>
+  <circle cx="64" cy="286" r="14" fill="#334155"/>
+  <text x="60" y="291" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="700">PK</text>
+  <text x="88" y="284" fill="#cbd5e1" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="500">Pooja Kulkarni</text>
+  <text x="88" y="302" fill="#64748b" font-family="monospace" font-size="11">MV260002 · 29F · O+</text>
+
+  <!-- Patient Card 3 -->
+  <rect x="40" y="336" width="248" height="66" rx="8" fill="#0f172a" stroke="#1e293b"/>
+  <circle cx="64" cy="362" r="14" fill="#334155"/>
+  <text x="60" y="367" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="700">RV</text>
+  <text x="88" y="360" fill="#cbd5e1" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="500">Rajesh Verma</text>
+  <text x="88" y="378" fill="#64748b" font-family="monospace" font-size="11">MV260003 · 52M · A+</text>
+
+  <!-- Main Center Panel: Clinical Encounter & Structured Prescription -->
+  <rect x="320" y="80" width="656" height="476" rx="10" fill="url(#cardGrad)" stroke="#334155" stroke-opacity="0.6"/>
+
+  <!-- Patient Header Banner in Main -->
+  <rect x="338" y="98" width="620" height="52" rx="8" fill="#0f172a" stroke="#334155"/>
+  <text x="354" y="122" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="15" font-weight="700">Aarav Sharma</text>
+  <text x="354" y="139" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11">DOB: 15 Jun 1988 · Phone: +91 98765 43210 · Emergency: Priya Sharma</text>
+  <rect x="862" y="110" width="82" height="26" rx="5" fill="#3b82f6" fill-opacity="0.2" stroke="#3b82f6" stroke-opacity="0.5"/>
+  <text x="874" y="127" fill="#60a5fa" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">View Card</text>
+
+  <!-- Encounter Step 1 Box -->
+  <rect x="338" y="162" width="620" height="154" rx="8" fill="#131d31" stroke="#1e293b"/>
+  <text x="354" y="184" fill="#38bdf8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="700">CLINICAL ENCOUNTER NOTES (SAVED)</text>
+  <text x="354" y="206" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">DIAGNOSIS:</text>
+  <text x="430" y="206" fill="#f1f5f9" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">Acute Upper Respiratory Tract Infection (Mild Febrile)</text>
+  <text x="354" y="228" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">CLINICAL NOTES:</text>
+  <text x="354" y="248" fill="#cbd5e1" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5">Patient reports 3-day history of dry cough and low-grade pyrexia. Chest clear on auscultation. Vitals stable.</text>
+
+  <rect x="354" y="268" width="138" height="24" rx="5" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.3"/>
+  <text x="366" y="284" fill="#34d399" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10.5" font-weight="600">✓ Encounter Saved</text>
+
+  <!-- Encounter Step 2 Box: Real Structured Prescription Creator -->
+  <rect x="338" y="328" width="620" height="212" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2"/>
+  <circle cx="356" cy="350" r="10" fill="#10b981" fill-opacity="0.2"/>
+  <path d="M356 345v10M351 350h10" stroke="#10b981" stroke-width="1.8" stroke-linecap="round"/>
+  <text x="374" y="354" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="700">Structured Prescriptions (Sent to Pharmacy)</text>
+
+  <!-- Dispatched Item 1 -->
+  <rect x="354" y="372" width="588" height="34" rx="6" fill="#1e293b" stroke="#334155"/>
+  <text x="368" y="393" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="600">Amoxicillin 500mg</text>
+  <rect x="480" y="380" width="64" height="18" rx="4" fill="#06b6d4" fill-opacity="0.2"/>
+  <text x="488" y="393" fill="#38bdf8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="600">Capsule</text>
+  <text x="560" y="393" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5">Qty: 10</text>
+  <text x="630" y="393" fill="#cbd5e1" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5">1 cap TID after meals</text>
+  <text x="790" y="393" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5">5 days</text>
+  <rect x="862" y="380" width="70" height="18" rx="4" fill="#f59e0b" fill-opacity="0.2"/>
+  <text x="874" y="393" fill="#fbbf24" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="700">QUEUED</text>
+
+  <!-- Dispatched Item 2 -->
+  <rect x="354" y="412" width="588" height="34" rx="6" fill="#1e293b" stroke="#334155"/>
+  <text x="368" y="433" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="600">Paracetamol 650mg</text>
+  <rect x="495" y="420" width="52" height="18" rx="4" fill="#8b5cf6" fill-opacity="0.2"/>
+  <text x="503" y="433" fill="#a78bfa" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="600">Tablet</text>
+  <text x="560" y="433" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5">Qty: 15</text>
+  <text x="630" y="433" fill="#cbd5e1" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5">1 tab PRN for fever</text>
+  <text x="790" y="433" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5">3 days</text>
+  <rect x="862" y="420" width="70" height="18" rx="4" fill="#f59e0b" fill-opacity="0.2"/>
+  <text x="874" y="433" fill="#fbbf24" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="700">QUEUED</text>
+
+  <!-- Structured Input Row -->
+  <rect x="354" y="458" width="220" height="32" rx="5" fill="#1e293b" stroke="#334155"/>
+  <text x="366" y="478" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11">Select Medicine from Catalog...</text>
+
+  <rect x="582" y="458" width="52" height="32" rx="5" fill="#1e293b" stroke="#334155"/>
+  <text x="594" y="478" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11">Qty</text>
+
+  <rect x="642" y="458" width="130" height="32" rx="5" fill="#1e293b" stroke="#334155"/>
+  <text x="652" y="478" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11">Dosage (e.g. 1 tab BD)</text>
+
+  <rect x="780" y="458" width="72" height="32" rx="5" fill="#1e293b" stroke="#334155"/>
+  <text x="790" y="478" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11">Duration</text>
+
+  <rect x="860" y="458" width="82" height="32" rx="5" fill="url(#emeraldGrad)"/>
+  <text x="876" y="478" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">+ Add</text>
+
+  <!-- Auto Sync Status -->
+  <text x="354" y="522" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10.5">Encounters support IndexedDB offline queueing with idempotency protection on reconnection.</text>
+</svg>

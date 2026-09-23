@@ -223,7 +223,7 @@ export const api = {
     return request<Medicine[]>('/medicines/critical-stock');
   },
 
-  async addMedicine(data: { medicine_name: string; manufacturer: string; unit: string; stock: number }): Promise<Medicine> {
+  async addMedicine(data: { medicine_name: string; manufacturer: string; unit: string; strength?: string; dosage_form?: string; stock: number }): Promise<Medicine> {
     return request<Medicine>('/medicines/', {
       method: 'POST',
       body: JSON.stringify(data),

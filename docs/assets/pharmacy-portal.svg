@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="cardGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1000" height="580" fill="url(#bgGrad2)" rx="14"/>
+
+  <!-- Top App Navigation Bar -->
+  <rect x="0" y="0" width="1000" height="60" fill="#0f172a" fill-opacity="0.9" rx="14 14 0 0"/>
+  <line x1="0" y1="60" x2="1000" y2="60" stroke="#334155" stroke-opacity="0.5"/>
+  <circle cx="28" cy="30" r="14" fill="#10b981" fill-opacity="0.2"/>
+  <path d="M28 22v16M20 30h16" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+  <text x="52" y="36" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="17" font-weight="700">MedVault</text>
+  <rect x="136" y="21" width="130" height="20" rx="10" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.3"/>
+  <text x="146" y="35" fill="#34d399" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10.5" font-weight="600">PHARMACY DISPENSARY</text>
+
+  <circle cx="810" cy="30" r="4.5" fill="#10b981"/>
+  <text x="822" y="34" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">Ledger Synced</text>
+  <rect x="912" y="16" width="70" height="28" rx="6" fill="#1e293b" stroke="#334155"/>
+  <text x="924" y="34" fill="#e2e8f0" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5" font-weight="500">Pharmacist</text>
+
+  <!-- Critical Stock Alert Banner -->
+  <rect x="24" y="80" width="952" height="48" rx="8" fill="#ef4444" fill-opacity="0.12" stroke="#ef4444" stroke-opacity="0.35"/>
+  <circle cx="48" cy="104" r="10" fill="#ef4444" fill-opacity="0.2"/>
+  <path d="M48 99v6M48 108v1.5" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/>
+  <text x="68" y="102" fill="#ef4444" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12.5" font-weight="700">Critical Stock Warning</text>
+  <text x="214" y="102" fill="#cbd5e1" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5">Atorvastatin 10mg (8 units remaining) · Cetirizine 10mg (15 units remaining)</text>
+  <rect x="860" y="90" width="102" height="28" rx="6" fill="#1e293b" stroke="#334155"/>
+  <text x="874" y="108" fill="#e2e8f0" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">Restock Now</text>
+
+  <!-- Metric Stat Cards -->
+  <g transform="translate(24, 144)">
+    <!-- Card 1 -->
+    <rect x="0" y="0" width="226" height="76" rx="8" fill="url(#cardGrad2)" stroke="#334155" stroke-opacity="0.6"/>
+    <text x="16" y="24" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">PRESCRIPTIONS QUEUED</text>
+    <text x="16" y="56" fill="#f59e0b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="26" font-weight="800">2</text>
+    <text x="46" y="54" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">Pending dispense</text>
+
+    <!-- Card 2 -->
+    <rect x="242" y="0" width="226" height="76" rx="8" fill="url(#cardGrad2)" stroke="#334155" stroke-opacity="0.6"/>
+    <text x="258" y="24" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">CATALOG MEDICINES</text>
+    <text x="258" y="56" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="26" font-weight="800">8</text>
+    <text x="286" y="54" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">Active formulations</text>
+
+    <!-- Card 3 -->
+    <rect x="484" y="0" width="226" height="76" rx="8" fill="url(#cardGrad2)" stroke="#334155" stroke-opacity="0.6"/>
+    <text x="500" y="24" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">CRITICAL STOCK ITEMS</text>
+    <text x="500" y="56" fill="#ef4444" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="26" font-weight="800">2</text>
+    <text x="526" y="54" fill="#ef4444" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">Threshold &lt; 10</text>
+
+    <!-- Card 4 -->
+    <rect x="726" y="0" width="226" height="76" rx="8" fill="url(#cardGrad2)" stroke="#334155" stroke-opacity="0.6"/>
+    <text x="742" y="24" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">IMMUTABLE AUDIT LOGS</text>
+    <text x="742" y="56" fill="#06b6d4" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="26" font-weight="800">14</text>
+    <text x="778" y="54" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">Ledger movements</text>
+  </g>
+
+  <!-- Main Section: Live Dispensing Queue -->
+  <rect x="24" y="238" width="952" height="318" rx="10" fill="url(#cardGrad2)" stroke="#334155" stroke-opacity="0.6"/>
+
+  <!-- Tab Bar -->
+  <rect x="40" y="254" width="168" height="32" rx="6" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-opacity="0.4"/>
+  <text x="54" y="275" fill="#34d399" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12.5" font-weight="600">Prescription Queue (2)</text>
+
+  <rect x="216" y="254" width="168" height="32" rx="6" fill="#0f172a" stroke="#334155"/>
+  <text x="232" y="275" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12.5">Medicine Catalog &amp; Stock</text>
+
+  <rect x="392" y="254" width="168" height="32" rx="6" fill="#0f172a" stroke="#334155"/>
+  <text x="408" y="275" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12.5">Movement Audit Ledger</text>
+
+  <!-- Queue Table Header -->
+  <rect x="40" y="302" width="920" height="32" fill="#0f172a" rx="4"/>
+  <text x="56" y="322" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">RX #</text>
+  <text x="130" y="322" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">PATIENT NAME</text>
+  <text x="310" y="322" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">MEDICINE &amp; STRENGTH</text>
+  <text x="530" y="322" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">QTY</text>
+  <text x="590" y="322" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">DOSAGE &amp; DURATION</text>
+  <text x="760" y="322" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">STATUS</text>
+  <text x="880" y="322" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="600">ACTION</text>
+
+  <!-- Table Row 1 -->
+  <line x1="40" y1="384" x2="960" y2="384" stroke="#1e293b"/>
+  <text x="56" y="362" fill="#94a3b8" font-family="monospace" font-size="12">#101</text>
+  <text x="130" y="362" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="600">Aarav Sharma</text>
+  <text x="310" y="362" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="500">Amoxicillin 500mg</text>
+  <rect x="440" y="348" width="58" height="18" rx="4" fill="#06b6d4" fill-opacity="0.15"/>
+  <text x="446" y="361" fill="#38bdf8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="600">Capsule</text>
+  <text x="530" y="362" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="700">10</text>
+  <text x="590" y="362" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">1 cap TID · 5 days</text>
+  <rect x="760" y="350" width="60" height="20" rx="4" fill="#f59e0b" fill-opacity="0.2"/>
+  <text x="770" y="364" fill="#fbbf24" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10.5" font-weight="700">PENDING</text>
+  <rect x="860" y="346" width="96" height="28" rx="5" fill="#10b981"/>
+  <text x="874" y="364" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5" font-weight="600">Dispense Stock</text>
+
+  <!-- Table Row 2 -->
+  <line x1="40" y1="436" x2="960" y2="436" stroke="#1e293b"/>
+  <text x="56" y="412" fill="#94a3b8" font-family="monospace" font-size="12">#102</text>
+  <text x="130" y="412" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="600">Aarav Sharma</text>
+  <text x="310" y="412" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="500">Paracetamol 650mg</text>
+  <rect x="446" y="398" width="52" height="18" rx="4" fill="#8b5cf6" fill-opacity="0.15"/>
+  <text x="453" y="411" fill="#a78bfa" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10" font-weight="600">Tablet</text>
+  <text x="530" y="412" fill="#f8fafc" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" font-weight="700">15</text>
+  <text x="590" y="412" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">1 tab PRN · 3 days</text>
+  <rect x="760" y="400" width="60" height="20" rx="4" fill="#f59e0b" fill-opacity="0.2"/>
+  <text x="770" y="414" fill="#fbbf24" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10.5" font-weight="700">PENDING</text>
+  <rect x="860" y="396" width="96" height="28" rx="5" fill="#10b981"/>
+  <text x="874" y="414" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11.5" font-weight="600">Dispense Stock</text>
+
+  <!-- Table Row 3 (Dispensed Record) -->
+  <text x="56" y="462" fill="#64748b" font-family="monospace" font-size="12">#099</text>
+  <text x="130" y="462" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13">Pooja Kulkarni</text>
+  <text x="310" y="462" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13">Metformin 500mg</text>
+  <rect x="435" y="448" width="52" height="18" rx="4" fill="#334155"/>
+  <text x="442" y="461" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10">Tablet</text>
+  <text x="530" y="462" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13">20</text>
+  <text x="590" y="462" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12">1 tab OD with breakfast</text>
+  <rect x="760" y="450" width="68" height="20" rx="4" fill="#10b981" fill-opacity="0.15"/>
+  <text x="768" y="464" fill="#34d399" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="10.5" font-weight="700">DISPENSED</text>
+  <text x="880" y="464" fill="#64748b" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11">Audited ✓</text>
+
+  <!-- Concurrency Safety Footer -->
+  <rect x="40" y="494" width="920" height="42" fill="#0f172a" rx="6" stroke="#1e293b"/>
+  <text x="56" y="519" fill="#10b981" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="700">ATOMIC DISPENSING GUARANTEE:</text>
+  <text x="274" y="519" fill="#94a3b8" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11">Row-level locks (SELECT FOR UPDATE) on both Prescription and Medicine rows prevent race conditions and negative inventory under concurrent dispense operations.</text>
+</svg>
