@@ -87,6 +87,7 @@ async def get_patient_dashboard(
                 diagnosis=record.diagnosis,
                 prescription=record.prescription,
                 notes=record.notes,
+                created_at=record.created_at,
                 prescriptions=prescriptions
             )
         )

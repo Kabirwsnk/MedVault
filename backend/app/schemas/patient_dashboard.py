@@ -18,6 +18,7 @@ class PatientMedicalRecordResponse(BaseModel):
     diagnosis: str
     prescription: str
     notes: Optional[str] = None
+    created_at: Optional[datetime] = None
     prescriptions: list[PatientPrescriptionResponse]
 
 

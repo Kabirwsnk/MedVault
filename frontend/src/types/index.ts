@@ -111,8 +111,17 @@ export interface PharmacyDashboardStats {
 }
 
 export interface PatientDashboard {
-  patient: Patient;
+  beneficiary_id: string;
+  full_name: string;
+  phone_number: string;
+  blood_group?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  emergency_contact?: string | null;
   medical_records: MedicalRecord[];
+  patient?: Patient;
 }
 
 export interface BeneficiaryCardData {
