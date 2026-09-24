@@ -350,7 +350,7 @@ async def patient_timeline(
     beneficiary_id: str,
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(
-        require_role(["doctor"])
+        require_role([ROLE_DOCTOR, ROLE_ADMIN])
     ),
 ):
 
@@ -359,7 +359,9 @@ async def patient_timeline(
         .options(
             selectinload(Patient.records)
             .selectinload(MedicalRecord.prescriptions)
-            .selectinload(Prescription.medicine)
+            .selectinload(Prescription.medicine),
+            selectinload(Patient.records)
+            .selectinload(MedicalRecord.doctor),
         )
         .where(Patient.beneficiary_id == beneficiary_id)
     )
@@ -387,7 +389,7 @@ async def patient_timeline(
                     duration=prescription.duration,
                     dispensed=prescription.dispensed,
                     dispensed_at=prescription.dispensed_at,
-                    medicine_name=prescription.medicine.medicine_name,
+                    medicine_name=prescription.medicine.medicine_name if prescription.medicine else "Unknown Medicine",
                 )
             )
 
@@ -397,6 +399,8 @@ async def patient_timeline(
                 diagnosis=record.diagnosis,
                 prescription=record.prescription,
                 notes=record.notes,
+                created_at=record.created_at,
+                doctor_name=record.doctor.email if record.doctor else "Attending Medical Officer",
                 prescriptions=prescriptions,
             )
         )

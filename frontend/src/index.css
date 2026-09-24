@@ -261,21 +261,124 @@ code, pre, .font-mono {
 }
 
 .alert-error {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
 }
 
 .alert-success {
-  background: rgba(16, 185, 129, 0.12);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #6ee7b7;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
 }
 
 .alert-info {
-  background: rgba(6, 182, 212, 0.12);
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  color: #67e8f9;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0369a1;
+}
+
+/* Institutional Government & Hospital OPD Grid & Action Styling */
+.gov-top-banner {
+  background: #f6ede3;
+  border-bottom: 2px solid #e0cdbb;
+  padding: 0.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.gov-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.gov-table th {
+  background: #243c5a;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #1e293b;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.gov-table td {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+.gov-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.gov-table tbody tr:hover {
+  background: #f0fdf4;
+}
+
+.gov-btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid #15803d;
+  background: #f0fdf4;
+  color: #166534;
+  transition: all 120ms ease;
+  white-space: nowrap;
+}
+
+.gov-btn-pill:hover:not(:disabled) {
+  background: #dcfce7;
+  border-color: #166534;
+}
+
+.gov-btn-pill-muted {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.gov-btn-pill-muted:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.gov-btn-solid-green {
+  background: #15803d;
+  color: #ffffff;
+  border: 1px solid #166534;
+  font-weight: 700;
+  padding: 0.45rem 1rem;
+  border-radius: 4px;
+  font-size: 0.84rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 120ms ease;
+}
+
+.gov-btn-solid-green:hover:not(:disabled) {
+  background: #166534;
+}
+
+.gov-btn-solid-green:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Layout Utilities */

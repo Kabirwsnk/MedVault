@@ -15,6 +15,8 @@ import { PatientPortal } from './pages/PatientPortal';
 import { AIAssistantView } from './pages/AIAssistantView';
 import { AdminPortal } from './pages/AdminPortal';
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 const AppLayout: React.FC = () => {
   return (
     <div className="app-container">
@@ -22,7 +24,9 @@ const AppLayout: React.FC = () => {
       <div className="main-content">
         <Navbar />
         <main style={{ flex: 1 }}>
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

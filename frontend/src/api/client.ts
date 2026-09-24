@@ -11,6 +11,7 @@ import {
   PharmacyDashboardStats,
   PatientDashboard,
   BeneficiaryCardData,
+  PatientTimelineResponse,
 } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -187,8 +188,20 @@ export const api = {
     return request<Patient>(`/patients/profile/${beneficiary_id}`);
   },
 
-  async getPatientTimeline(beneficiary_id: string): Promise<any[]> {
-    return request<any[]>(`/patients/timeline/${beneficiary_id}`);
+  async getPatientTimeline(beneficiary_id: string): Promise<PatientTimelineResponse> {
+    const res = await request<any>(`/patients/timeline/${beneficiary_id}`);
+    if (Array.isArray(res)) {
+      return {
+        beneficiary_id,
+        full_name: '',
+        medical_records: res,
+      };
+    }
+    return {
+      beneficiary_id: res?.beneficiary_id || beneficiary_id,
+      full_name: res?.full_name || '',
+      medical_records: Array.isArray(res?.medical_records) ? res.medical_records : [],
+    };
   },
 
   async getBeneficiaryCard(beneficiary_id: string): Promise<BeneficiaryCardData> {
@@ -213,7 +226,11 @@ export const api = {
   },
 
   async getMedicalRecords(beneficiary_id: string): Promise<MedicalRecord[]> {
-    return request<MedicalRecord[]>(`/medical-records/${beneficiary_id}`);
+    const res = await request<any>(`/medical-records/${beneficiary_id}`);
+    if (Array.isArray(res)) return res;
+    if (res && Array.isArray(res.records)) return res.records;
+    if (res && Array.isArray(res.medical_records)) return res.medical_records;
+    return [];
   },
 
   // Medicines & Inventory

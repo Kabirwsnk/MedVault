@@ -110,7 +110,7 @@ export const AIAssistantView: React.FC = () => {
                 Evaluated Conditions:
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                {symptomResult.possible_conditions.map((cond: string, idx: number) => (
+                {(Array.isArray(symptomResult.possible_conditions) ? symptomResult.possible_conditions : []).map((cond: string, idx: number) => (
                   <span key={idx} className="badge badge-amber font-mono">
                     {cond}
                   </span>

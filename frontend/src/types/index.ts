@@ -134,3 +134,29 @@ export interface BeneficiaryCardData {
   total_records: number;
   qr_data_preview?: string;
 }
+
+export interface TimelinePrescription {
+  id: number;
+  quantity: number;
+  dosage: string;
+  duration: string;
+  dispensed: boolean;
+  dispensed_at?: string | null;
+  medicine_name: string;
+}
+
+export interface TimelineMedicalRecord {
+  id: number;
+  diagnosis: string;
+  prescription: string;
+  notes?: string | null;
+  created_at?: string | null;
+  doctor_name?: string | null;
+  prescriptions: TimelinePrescription[];
+}
+
+export interface PatientTimelineResponse {
+  beneficiary_id: string;
+  full_name: string;
+  medical_records: TimelineMedicalRecord[];
+}

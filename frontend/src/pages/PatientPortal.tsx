@@ -222,7 +222,7 @@ export const PatientPortal: React.FC = () => {
                       </p>
                     )}
 
-                    {rec.prescriptions && rec.prescriptions.length > 0 && (
+                    {Array.isArray(rec.prescriptions) && rec.prescriptions.length > 0 && (
                       <div style={{ marginTop: '0.75rem', borderTop: '1px solid rgba(148, 163, 184, 0.1)', paddingTop: '0.75rem' }}>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase' }}>
                           Prescribed Formulations:

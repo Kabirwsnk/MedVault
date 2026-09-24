@@ -23,6 +23,8 @@ class TimelineMedicalRecord(BaseModel):
     diagnosis: str
     prescription: str
     notes: str | None = None
+    created_at: datetime | None = None
+    doctor_name: str | None = None
 
     prescriptions: list[TimelinePrescription]
 

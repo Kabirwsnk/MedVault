@@ -1,29 +1,40 @@
 # MedVault
 
-**MedVault** is an enterprise-grade, role-protected healthcare platform for beneficiary identity management, clinical encounters, structured e-prescriptions, pharmacy inventory with row-level locks, and digital health records.
+**MedVault** is an enterprise-grade, role-protected healthcare platform for beneficiary identity management, clinical OPD encounters, structured e-prescriptions, pharmacy inventory with row-level locks, and digital health records.
 
 Built with **FastAPI**, **PostgreSQL** (SQLAlchemy 2.x async + Alembic), and **React 19** (TypeScript + Vite), MedVault guarantees zero race conditions in identity allocation and medicine dispensing through strict database concurrency controls.
 
 ---
 
-## 🚀 Live Demo & Demo Accounts
+## 🚀 Live Application Link
+
+- **Production URL**: [https://med-vault-aia7.vercel.app](https://med-vault-aia7.vercel.app)
+- **Deployment Status**: Active on **Vercel** (Frontend) + **Render** (FastAPI) + **Neon** (Serverless PostgreSQL)
+
+### Demo Accounts & Station Credentials
 
 | Station | Role | Demo Email | Demo Password | Primary Features |
 |---|---|---|---|---|
-| **Doctor Station** | `doctor` | `doctor@medvault.test` | `DoctorSecurePassword123!` | Clinical encounters, diagnosis, structured prescriptions |
+| **Doctor Station** | `doctor` | `doctor@medvault.test` | `DoctorSecurePassword123!` | Central OPD consultation, diagnosis duration/remarks, drug templates, longitudinal history modal, 1-click repeat Rx |
 | **Pharmacy Station** | `pharmacy` | `pharmacy@medvault.test` | `PharmacySecurePassword123!` | Atomic dispensing, critical stock alerts, inventory restock |
 | **Registration Station** | `registration_worker` | `worker@medvault.test` | `WorkerSecurePassword123!` | Beneficiary registration, QR health card issuance, PDF card |
 | **Patient Health Vault** | `patient` | `patient@medvault.test` | `PatientSecurePassword123!` | View personal clinical records, prescriptions, digital QR card |
 | **Admin Console** | `admin` | `admin@local.test` | `AdminSecurePassword123!` | Staff provisioning, telemetry, system audit controls |
 
-> **Live Deployment Guide:** Refer to [DEPLOYMENT.md](DEPLOYMENT.md) for 1-click cloud deployment on **Render (FastAPI)** + **Vercel (React SPA)** + **Neon (Serverless PostgreSQL)**.
+> **Quick Login Tip:** On the login screen, click any of the **Quick Demo Preset buttons** (`Doctor`, `Pharmacy`, `Registration`, `Patient`, `Admin`) to populate credentials and sign in immediately.
 
 ---
 
 ## 📸 Interface Showcase
 
-### 1. Doctor Portal — Clinical Encounters & Structured e-Prescriptions
-Doctors document clinical encounters with diagnosis, free-text clinical notes, and interactive AI diagnostic context. Submitting an encounter unlocks structured e-prescription dispatch directly to the pharmacy queue with exact dosage, duration, formulation, and quantity controls.
+### 1. Doctor Portal — Central OPD Consultation & Structured e-Prescriptions
+Modelled on high-density government hospital & e-Hospital OPD systems (such as CGHS and NIC e-Hospital):
+- **Central OPD Header**: Government health emblem badge, live 30-minute session countdown timer (`Time left: 29:45`) with interactive `🔄` token refresh, and attending medical officer badge.
+- **Beneficiary Demographic Strip**: High-density patient demographic bar with Beneficiary ID, age, gender, blood group, contact, and AI clinical brief.
+- **Clinical Diagnosis & Notes**: Inline diagnosis input, duration (`yrs / mos / days`), clinical observations, quick-diagnosis tags, and examination notes.
+- **Drug Formulation Grid**: Structured `.gov-table` with drug selector, dosage, frequency (`1-0-1`, `1-1-1`, `BD`, `TDS`, etc.), days, auto-calculated quantity, and instructions.
+- **Prescribed Medicine History Modal**: Complete historical record of all past medicines with live inventory availability and a 1-click **`[Repeat]`** button that copies past regimens directly into the active prescription table.
+- **Fail-Safe Session Architecture**: Powered by a layout-level React `ErrorBoundary` and defensive timeline deserialization preventing blank screens.
 
 ![Doctor Portal Encounter and Prescriptions](docs/assets/doctor-portal.svg)
 
